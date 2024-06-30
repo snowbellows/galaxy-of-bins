@@ -83,21 +83,14 @@ function draw() {
   //     }
   //   }
 
-  drawBottle(windowWidth / 2 - 100, windowHeight / 2, 100, frameCount * 0.01);
+  drawStarSystem(windowWidth * 0.4, windowHeight * 0.3, 50)
+  drawStarSystem(windowWidth * 0.8, windowHeight  * 0.4, 50, 15)
 
-  drawAppleCore(
-    windowWidth / 2 + 100,
-    windowHeight / 2,
-    100,
-    10 + frameCount * 0.01
-  );
+  drawStarSystem(windowWidth * 0.2, windowHeight * 0.7, 50, 20)
 
-  drawChipPacket(
-    windowWidth / 2,
-    windowHeight / 2 - 200,
-    100,
-    20 + frameCount * 0.01
-  );
+  drawStarSystem(windowWidth * 0.7, windowHeight * 0.8, 50, 25)
+
+
 }
 
 /**
@@ -115,6 +108,11 @@ function drawBottle(x: number, y: number, s: number, r: number = 0) {
   translate(x, y);
   rotate(r);
   noStroke();
+
+  // background
+  fill(SPACE_CADET)
+  circle(0, 0, s * 2)
+
   // plastic body
   fill(CAROLINA_BLUE);
   const rX = 0;
@@ -176,6 +174,9 @@ function drawAppleCore(x: number, y: number, s: number, r: number = 0) {
 
   const seH = w / 3;
   const rH = h - seH / 2;
+  // background
+  fill(SPACE_CADET)
+  circle(0, 0, s * 2)
 
   // bottom skin
 
@@ -227,6 +228,10 @@ function drawChipPacket(x: number, y: number, s: number, r: number = 0) {
   rotate(r);
   noStroke();
 
+    // background
+    fill(SPACE_CADET)
+    circle(0, 0, s * 2)
+  
   // packet
   fill(AMARANTH_PINK);
 
@@ -258,6 +263,67 @@ function drawChipPacket(x: number, y: number, s: number, r: number = 0) {
   rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
 
   pop();
+}
+
+/**
+ * Draws a star to the canvas.
+ *
+ * @param x x-coordinate of the center of the apple core.
+ * @param y y-coordinate of the center of the apple core.
+ * @param d diameter of the star.
+ * @param b (optional) brightness 0.0 - 1.0 range.
+ */
+function drawStar(x: number, y: number, d: number, b: number) {
+  push();
+  translate(x, y);
+  noStroke();
+
+  if (b > 0.75) {
+    fill(CAROLINA_BLUE);
+  } else if (b > 0.5) {
+    fill(PARCHMENT);
+  } else if (b > 0.25) {
+    fill(CARROT_ORANGE);
+  } else {
+    fill(CHESTNUT);
+  }
+
+  circle(0, 0, d);
+
+  pop();
+}
+
+function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
+  push();
+  translate(x, y);
+  drawStar(0, 0, s, ((r + frameCount) % 60) / 60);
+
+
+  push()
+  noFill()
+  stroke(FRENCH_MAUVE)
+  circle(0,0, s * 2)
+  rotate( r + frameCount * 0.003 * r)
+  drawBottle(s, 0, s / 2,  r + frameCount * 0.001 * r);
+  pop()
+
+  push()
+  noFill()
+  stroke(FRENCH_MAUVE)
+  circle(0,0, s * 4)
+  rotate( r + 10 +frameCount * 0.002 * r)
+  drawAppleCore(s *2, 0, s / 2, r + 10 + frameCount * 0.001 * r);
+  pop()
+
+  push()
+  noFill()
+  stroke(FRENCH_MAUVE)
+  circle(0,0, s * 6)
+  rotate( r + 20 + frameCount * 0.001 * r)
+  drawChipPacket(s * 3, 0, s/2, r + 20 + frameCount * 0.001 * r);
+pop()
+  pop()
+
 }
 
 function refreshData() {
