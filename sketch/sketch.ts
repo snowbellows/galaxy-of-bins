@@ -8,9 +8,9 @@ const AUTUMN_BROWN = "#541a0b";
 const AMARANTH_PINK = "#E39EC1";
 const FRENCH_MAUVE = "#C47AC0";
 const CAROLINA_BLUE = "#84BCDA";
-const PISTACHIO = "#B4DC7F"
+const PISTACHIO = "#B4DC7F";
 const SPACE_CADET = "#2B2D42";
-const LAVENDER_GREY = "#a3a6c9"
+const LAVENDER_GREY = "#a3a6c9";
 const BACKGROUND = SPACE_CADET;
 
 // gravity
@@ -83,8 +83,6 @@ function draw() {
   //     }
   //   }
 
-  
-
   drawBottle(windowWidth / 2 - 100, windowHeight / 2, 100, frameCount * 0.01);
 
   drawAppleCore(
@@ -129,9 +127,8 @@ function drawBottle(x: number, y: number, s: number, r: number = 0) {
   const eW = w;
   const eH = w / 2;
 
-  const rY =  0;
+  const rY = 0;
   const rH = h - (cD / 2 + eH / 2);
-
 
   const cY = rY - rH / 2;
 
@@ -244,21 +241,21 @@ function drawChipPacket(x: number, y: number, s: number, r: number = 0) {
   // const gap = feH / 8
   // rect(0, - (rH /2 ) + feH / 2 + gap, w + gap * 2, feH, feH / 2)
 
-  fill(LAVENDER_GREY)
-  
-  rect(0, - (rH /2 ) + feH / 2, w, feH, feH / 2 )
+  fill(LAVENDER_GREY);
+
+  rect(0, -(rH / 2) + feH / 2, w, feH, feH / 2);
 
   // bottom foil
 
-  const bfrH = feH / 3
+  const bfrH = feH / 3;
 
-  rect(0, (rH /2 ) + feH / 2 - bfrH /2, w, bfrH)
+  rect(0, rH / 2 + feH / 2 - bfrH / 2, w, bfrH);
 
   // label
 
-  fill(FRENCH_MAUVE)
+  fill(FRENCH_MAUVE);
 
-  rect(0, 0 + feH / 2, w / 2, w /3, s /10)
+  rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
 
   pop();
 }
