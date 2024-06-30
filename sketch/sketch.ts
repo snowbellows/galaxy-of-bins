@@ -83,14 +83,12 @@ function draw() {
   //     }
   //   }
 
-  drawStarSystem(windowWidth * 0.4, windowHeight * 0.3, 50)
-  drawStarSystem(windowWidth * 0.8, windowHeight  * 0.4, 50, 15)
+  drawStarSystem(windowWidth * 0.4, windowHeight * 0.3, 30, 17);
+  drawStarSystem(windowWidth * 0.8, windowHeight * 0.4, 30, 13);
 
-  drawStarSystem(windowWidth * 0.2, windowHeight * 0.7, 50, 20)
+  drawStarSystem(windowWidth * 0.2, windowHeight * 0.7, 30, 20);
 
-  drawStarSystem(windowWidth * 0.7, windowHeight * 0.8, 50, 25)
-
-
+  drawStarSystem(windowWidth * 0.7, windowHeight * 0.8, 30);
 }
 
 /**
@@ -108,10 +106,6 @@ function drawBottle(x: number, y: number, s: number, r: number = 0) {
   translate(x, y);
   rotate(r);
   noStroke();
-
-  // background
-  fill(SPACE_CADET)
-  circle(0, 0, s * 2)
 
   // plastic body
   fill(CAROLINA_BLUE);
@@ -174,9 +168,6 @@ function drawAppleCore(x: number, y: number, s: number, r: number = 0) {
 
   const seH = w / 3;
   const rH = h - seH / 2;
-  // background
-  fill(SPACE_CADET)
-  circle(0, 0, s * 2)
 
   // bottom skin
 
@@ -228,10 +219,6 @@ function drawChipPacket(x: number, y: number, s: number, r: number = 0) {
   rotate(r);
   noStroke();
 
-    // background
-    fill(SPACE_CADET)
-    circle(0, 0, s * 2)
-  
   // packet
   fill(AMARANTH_PINK);
 
@@ -294,36 +281,59 @@ function drawStar(x: number, y: number, d: number, b: number) {
 }
 
 function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
-  push();
+  noStroke()
+  push(); // 1
   translate(x, y);
+
+  push(); // 2
+  // rings
+  noFill();
+  stroke(FRENCH_MAUVE);
+  circle(0, 0, s * 2);
+  circle(0, 0, s * 3);
+  circle(0, 0, s * 4);
+
+  pop(); // 2
+
+  push(); // 3
+  rotate(r + frameCount * 0.003 * r);
+  // blank space
+  fill(SPACE_CADET);
+  circle(s, 0,  s * 0.75 );
+  pop(); // 3
+
+  push(); //  4
+  rotate(r + 10 + frameCount * 0.002 * r);
+  // blank space
+  fill(SPACE_CADET);
+  circle(s * 1.5, 0, s * 0.75);
+  pop(); // 4
+
+  push(); // 5
+  rotate(r + 20 + frameCount * 0.001 * r);
+  // blank space
+  fill(SPACE_CADET);
+  circle(s * 2, 0,  s * 0.75 );
+  pop(); // 5
+
+  push(); // 6
+  rotate(r + frameCount * 0.003 * r);
+  drawBottle(s, 0, s / 2, r + frameCount * 0.001 * r);
+  pop(); // 6
+
+  push(); // 7
+  rotate(r + 10 + frameCount * 0.002 * r);
+  drawAppleCore(s * 1.5, 0, s / 2, r + 10 + frameCount * 0.001 * r);
+  pop(); // 7
+
+  push(); // 8
+  rotate(r + 20 + frameCount * 0.001 * r);
+  drawChipPacket(s * 2, 0, s / 2, r + 20 + frameCount * 0.001 * r);
+  pop(); // 8
+
   drawStar(0, 0, s, ((r + frameCount) % 60) / 60);
 
-
-  push()
-  noFill()
-  stroke(FRENCH_MAUVE)
-  circle(0,0, s * 2)
-  rotate( r + frameCount * 0.003 * r)
-  drawBottle(s, 0, s / 2,  r + frameCount * 0.001 * r);
-  pop()
-
-  push()
-  noFill()
-  stroke(FRENCH_MAUVE)
-  circle(0,0, s * 4)
-  rotate( r + 10 +frameCount * 0.002 * r)
-  drawAppleCore(s *2, 0, s / 2, r + 10 + frameCount * 0.001 * r);
-  pop()
-
-  push()
-  noFill()
-  stroke(FRENCH_MAUVE)
-  circle(0,0, s * 6)
-  rotate( r + 20 + frameCount * 0.001 * r)
-  drawChipPacket(s * 3, 0, s/2, r + 20 + frameCount * 0.001 * r);
-pop()
-  pop()
-
+  pop(); // 1
 }
 
 function refreshData() {
