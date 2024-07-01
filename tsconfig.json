@@ -2,7 +2,7 @@
   "compilerOptions": {
     "module": "AMD",
     "noImplicitAny": true,
-    "outFile": "./build/build.js",
+    "outFile": "./dist/build/build.js",
     "preserveConstEnums": true,
     "removeComments": true,
     "rootDir": "./sketch/",
