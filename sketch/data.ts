@@ -135,5 +135,7 @@ async function getBinSensorDataForDate(date: Date): Promise<
     sensorIds.map((id) => getBinSensorData(id, date))
   );
 
-  return sensorIds.map((id, i) => ({ id, data: binData[i] }));
+  return sensorIds
+    .map((id, i) => ({ id, data: binData[i] }))
+    .filter((d) => d.data.length > 0);
 }
