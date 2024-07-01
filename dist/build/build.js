@@ -185,7 +185,8 @@ var cV = 0;
 var dataTimer;
 var entry = 0;
 var centrePoint = { lat: 0, lon: 0 };
-var zoom = 100000;
+var zoom = 500000;
+var starSystemSize = 20;
 var centreX = 0;
 var centreY = 0;
 function differenceLatLon(ll0, ll1) {
@@ -221,19 +222,24 @@ function draw() {
                 var _a = differenceLatLon(centrePoint, binData.lat_long), x = _a.lon, y = _a.lat;
                 var xx = windowWidth / 2 - x * zoom + centreX;
                 var yy = windowHeight / 2 - y * zoom + centreY;
-                drawStarSystem(xx, yy, 30, 10 + i);
+                drawStarSystem(xx, yy, starSystemSize, 10 + i);
             }
         });
     }
 }
 function mouseWheel(event) {
+    var zoomScrollAmount = 20000;
+    var starSystemScrollAmount = 1;
     if (event.deltaY > 0) {
-        zoom += 1000;
+        zoom += zoomScrollAmount;
+        starSystemSize += starSystemScrollAmount;
     }
     else {
-        zoom -= 1000;
+        zoom -= zoomScrollAmount;
+        if (starSystemSize - starSystemScrollAmount > 0) {
+            starSystemSize -= starSystemScrollAmount;
+        }
     }
-    console.log("zoom", zoom);
     return false;
 }
 function mouseDragged(event) {

@@ -27,7 +27,7 @@ const binDataKey = "sketch-bin-data";
 
 const date = new Date();
 
-date.setDate(date.getDate() - 1)
+date.setDate(date.getDate() - 1);
 
 const flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
 
@@ -41,7 +41,8 @@ let entry = 0;
 
 let centrePoint = { lat: 0, lon: 0 };
 
-let zoom = 100000;
+let zoom = 500000;
+let starSystemSize = 20;
 
 let centreX = 0;
 let centreY = 0;
@@ -104,7 +105,7 @@ function draw() {
         const xx = windowWidth / 2 - x * zoom + centreX;
         const yy = windowHeight / 2 - y * zoom + centreY;
         // console.log(xx, yy)
-        drawStarSystem(xx, yy, 30, 10 + i);
+        drawStarSystem(xx, yy, starSystemSize, 10 + i);
       }
     });
   }
@@ -112,20 +113,25 @@ function draw() {
 
 // zoom when the user scrolls the mouse wheel.
 function mouseWheel(event: WheelEvent) {
-  if (event.deltaY > 0) {
-    zoom += 1000;
-  } else {
-    zoom -= 1000;
-  }
+  const zoomScrollAmount = 20000;
+  const starSystemScrollAmount = 1;
 
-  console.log("zoom", zoom)
+  if (event.deltaY > 0) {
+    zoom += zoomScrollAmount;
+    starSystemSize += starSystemScrollAmount;
+  } else {
+    zoom -= zoomScrollAmount;
+    if (starSystemSize - starSystemScrollAmount > 0) {
+      starSystemSize -= starSystemScrollAmount;
+    }
+  }
 
   return false;
 }
 
 function mouseDragged(event: MouseEvent) {
-  centreX += event.movementX
-  centreY += event.movementY
+  centreX += event.movementX;
+  centreY += event.movementY;
 }
 
 /**
