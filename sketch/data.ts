@@ -69,6 +69,7 @@ async function getBinSensorData(
     where: `${id ? `dev_id = "${id}"` : ""}${id && after_date ? " and " : ""}${
       after_date ? `time >= date'${after_date.toISOString()}'` : ""
     }`,
+    order_by: "time",
     limit: "100",
   }).toString();
 

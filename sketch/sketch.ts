@@ -25,11 +25,33 @@ const melbLong = 144.96332;
 
 const binDataKey = "sketch-bin-data";
 
+const date = new Date();
+
+date.setDate(date.getDate() - 1)
+
+const flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
+
 let cX = 0;
 let cY = 0;
 let cV = 0;
 
 let dataTimer;
+
+let entry = 0;
+
+let centrePoint = { lat: 0, lon: 0 };
+
+let zoom = 100000;
+
+let centreX = 0;
+let centreY = 0;
+
+function differenceLatLon(
+  ll0: { lat: number; lon: number },
+  ll1: { lat: number; lon: number }
+): { lat: number; lon: number } {
+  return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
+}
 
 function setup() {
   console.log("🚀 - Setup initialized - P5 is running");
@@ -40,7 +62,7 @@ function setup() {
 
   cX = windowWidth / 2;
   cY = windowHeight / 2;
-  // refreshData();
+  refreshData();
   // dataTimer = setInterval(() => {
   //   refreshData();
   // }, 1000 * 60);
@@ -49,46 +71,61 @@ function setup() {
 }
 
 function draw() {
-  //   if (cY > windowHeight - circleRadius) {
-  //     // if (cV > 0.0001) {
-  //     cV *= -0.8;
-  //     // } else {
-  //     //   cV = 0;
-  //     //   cY = windowHeight - circleRadius
-  //     // }
-  //   }
-  //   if (cV < 0.182) {
-  //     cV = 0;
-  //   }
-  //   if (cV !== 0) {
-  // cV += g / 30;
-  //   }
-
-  //   cY += cV;
-
-  //   console.log("windowHeight - circleRadius", windowHeight - circleRadius);
-  //   console.log("cV", cV);
-  //   console.log("cY", cY);
   background(BACKGROUND);
 
-  //   const data = getItem(binDataKey) as (null | BinSensorDataType)
+  const data = getItem(binDataKey) as
+    | null
+    | {
+        id: string;
+        data: BinSensorDataEntry[];
+      }[];
 
-  //   if (data) {
-  //     for (const binData of data.results) {
-  //         const bY =  (binData.lat_long && 'lat' in binData.lat_long) ? binData.lat_long.lat - melbLat : 0
-  //         const bX =  (binData.lat_long && 'lon' in binData.lat_long) ? binData.lat_long.lon - melbLong : 0
+  if (data) {
+    let done = true;
+    data.forEach((bin, i) => {
+      let binData;
+      if (bin.data.length > entry) {
+        done = done && false;
+        binData = bin.data[entry];
+      } else {
+        binData = bin.data[bin.data.length - 1];
+        done = done && true;
+      }
+      if (
+        binData.lat_long &&
+        "lon" in binData.lat_long &&
+        "lat" in binData.lat_long
+      ) {
+        const { lon: x, lat: y } = differenceLatLon(
+          centrePoint,
+          binData.lat_long
+        );
 
-  //         circle( windowWidth / 2 - (bX * 10000 ), windowHeight / 2 - (bY * 10000), circleRadius);
+        const xx = windowWidth / 2 - x * zoom + centreX;
+        const yy = windowHeight / 2 - y * zoom + centreY;
+        // console.log(xx, yy)
+        drawStarSystem(xx, yy, 30, 10 + i);
+      }
+    });
+  }
+}
 
-  //     }
-  //   }
+// zoom when the user scrolls the mouse wheel.
+function mouseWheel(event: WheelEvent) {
+  if (event.deltaY > 0) {
+    zoom += 1000;
+  } else {
+    zoom -= 1000;
+  }
 
-  drawStarSystem(windowWidth * 0.4, windowHeight * 0.3, 30, 17);
-  drawStarSystem(windowWidth * 0.8, windowHeight * 0.4, 30, 13);
+  console.log("zoom", zoom)
 
-  drawStarSystem(windowWidth * 0.2, windowHeight * 0.7, 30, 20);
+  return false;
+}
 
-  drawStarSystem(windowWidth * 0.7, windowHeight * 0.8, 30);
+function mouseDragged(event: MouseEvent) {
+  centreX += event.movementX
+  centreY += event.movementY
 }
 
 /**
@@ -281,7 +318,7 @@ function drawStar(x: number, y: number, d: number, b: number) {
 }
 
 function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
-  noStroke()
+  noStroke();
   push(); // 1
   translate(x, y);
 
@@ -299,7 +336,7 @@ function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
   rotate(r + frameCount * 0.003 * r);
   // blank space
   fill(SPACE_CADET);
-  circle(s, 0,  s * 0.75 );
+  circle(s, 0, s * 0.75);
   pop(); // 3
 
   push(); //  4
@@ -313,7 +350,7 @@ function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
   rotate(r + 20 + frameCount * 0.001 * r);
   // blank space
   fill(SPACE_CADET);
-  circle(s * 2, 0,  s * 0.75 );
+  circle(s * 2, 0, s * 0.75);
   pop(); // 5
 
   push(); // 6
@@ -337,11 +374,29 @@ function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
 }
 
 function refreshData() {
-  getBinSensorData()
+  getBinSensorDataForDate(date)
     .then((data) => {
       if (data) {
-        console.log(data);
-        storeItem(binDataKey, data);
+        const filteredData = data.filter((d) => d.data[0].lat_long !== null);
+        const { lat, lon } = filteredData.reduce(
+          (acc, d) => {
+            const dll = d.data[0].lat_long;
+            console.log("dll", dll);
+
+            return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+          },
+          { lat: 0, lon: 0 }
+        );
+
+        centrePoint = {
+          lat: lat / filteredData.length,
+          lon: lon / filteredData.length,
+        };
+
+        console.log("centrePoint", centrePoint);
+
+        console.log(filteredData);
+        storeItem(binDataKey, filteredData);
       }
     })
     .catch((e) => console.error("Could not refresh data: ", e));
