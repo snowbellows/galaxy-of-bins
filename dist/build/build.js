@@ -174,20 +174,18 @@ var p5BinSketch = new p5(function sketch(sk) {
     var pixelsPerMetre = 3780;
     var fps = 30;
     var circleRadius = 5;
-    var melbLat = -37.814;
-    var melbLong = 144.96332;
+    var refreshInterval = 1000 * 60 * 15;
+    var minSystemSize = 3;
+    var maxSystemSize = sk.windowHeight * 0.1;
+    var refreshTimestampKey = "sketch-data-refresh-timestamp";
     var binDataKey = "sketch-bin-data";
     var date = new Date();
     date.setDate(date.getDate() - 1);
-    var flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
-    var cX = 0;
-    var cY = 0;
-    var cV = 0;
     var dataTimer;
     var entry = 0;
     var centrePoint = { lat: 0, lon: 0 };
     var zoom = 500000;
-    var starSystemSize = 20;
+    var rotationAngle = 0;
     var centreX = 0;
     var centreY = 0;
     function differenceLatLon(ll0, ll1) {
@@ -196,17 +194,20 @@ var p5BinSketch = new p5(function sketch(sk) {
     sk.setup = function () {
         console.log("🚀 - Setup initialized - P5 is running");
         sk.createCanvas(sk.windowWidth, sk.windowHeight);
-        sk.rectMode(sk.CENTER).noFill();
+        sk.rectMode(sk.CENTER);
         sk.frameRate(30);
-        cX = sk.windowWidth / 2;
-        cY = sk.windowHeight / 2;
+        centreX = sk.windowWidth / 2;
+        centreY = sk.windowHeight / 2;
         refreshData();
     };
     sk.draw = function () {
         sk.background(BACKGROUND);
+        sk.push();
+        sk.translate(centreX, centreY);
         var data = sk.getItem(binDataKey);
         if (data) {
             var done_1 = true;
+            rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
             data.forEach(function (bin, i) {
                 var binData;
                 if (bin.data.length > entry) {
@@ -217,28 +218,35 @@ var p5BinSketch = new p5(function sketch(sk) {
                     binData = bin.data[bin.data.length - 1];
                     done_1 = done_1 && true;
                 }
+                if (done_1 && sk.millis() % 300 === 0) {
+                    entry += 1;
+                }
+                else {
+                    entry = 0;
+                }
                 if (binData.lat_long &&
                     "lon" in binData.lat_long &&
                     "lat" in binData.lat_long) {
                     var _a = differenceLatLon(centrePoint, binData.lat_long), x = _a.lon, y = _a.lat;
-                    var xx = sk.windowWidth / 2 - x * zoom + centreX;
-                    var yy = sk.windowHeight / 2 - y * zoom + centreY;
-                    drawStarSystem(xx, yy, starSystemSize, 10 + i);
+                    var xx = x * zoom;
+                    var yy = y * zoom;
+                    var systemSize = zoom / 25000;
+                    systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
+                    systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
+                    drawStarSystem(xx, yy, systemSize, i);
                 }
             });
         }
+        sk.pop();
     };
     sk.mouseWheel = function (event) {
-        var zoomScrollAmount = 20000;
-        var starSystemScrollAmount = 1;
+        var zoomScrollAmount = 10000;
         if (event.deltaY > 0) {
             zoom += zoomScrollAmount;
-            starSystemSize += starSystemScrollAmount;
         }
         else {
-            zoom -= zoomScrollAmount;
-            if (starSystemSize - starSystemScrollAmount > 0) {
-                starSystemSize -= starSystemScrollAmount;
+            if (zoom - zoomScrollAmount > 0) {
+                zoom -= zoomScrollAmount;
             }
         }
         return false;
@@ -252,7 +260,6 @@ var p5BinSketch = new p5(function sketch(sk) {
         var w = s * 0.42;
         var h = s;
         sk.push();
-        sk.translate(x, y);
         sk.rotate(r);
         sk.noStroke();
         sk.fill(CAROLINA_BLUE);
@@ -335,17 +342,17 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
         sk.pop();
     }
-    function drawStar(x, y, d, b) {
+    function drawStar(x, y, d, t) {
         sk.push();
         sk.translate(x, y);
         sk.noStroke();
-        if (b > 0.75) {
+        if (t > 0.75) {
             sk.fill(CAROLINA_BLUE);
         }
-        else if (b > 0.5) {
+        else if (t > 0.5) {
             sk.fill(PARCHMENT);
         }
-        else if (b > 0.25) {
+        else if (t > 0.25) {
             sk.fill(CARROT_ORANGE);
         }
         else {
@@ -354,46 +361,61 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.circle(0, 0, d);
         sk.pop();
     }
-    function drawStarSystem(x, y, s, r) {
-        if (r === void 0) { r = 10; }
+    function drawStarSystem(x, y, s, r, p, t) {
+        if (r === void 0) { r = 1; }
+        if (p === void 0) { p = 3; }
+        if (t === void 0) { t = 0; }
+        var orbits = Array.from(Array(p).keys()).map(function (i) {
+            var diameter = s * (2 + i) * 1.25;
+            return {
+                diameter: diameter,
+                radius: diameter / 2,
+                angle: rotationAngle + (rotationAngle * (3 - i)) / p / 2 + r + i * 2,
+            };
+        });
+        var planetSize = s / 2;
+        var blankSpaceSize = s * 0.75;
         sk.noStroke();
         sk.push();
         sk.translate(x, y);
         sk.push();
         sk.noFill();
         sk.stroke(FRENCH_MAUVE);
-        sk.circle(0, 0, s * 2);
-        sk.circle(0, 0, s * 3);
-        sk.circle(0, 0, s * 4);
+        orbits.forEach(function (_a) {
+            var diameter = _a.diameter;
+            sk.circle(0, 0, diameter);
+        });
         sk.pop();
-        sk.push();
-        sk.rotate(r + sk.frameCount * 0.003 * r);
-        sk.fill(SPACE_CADET);
-        sk.circle(s, 0, s * 0.75);
-        sk.pop();
-        sk.push();
-        sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
-        sk.fill(SPACE_CADET);
-        sk.circle(s * 1.5, 0, s * 0.75);
-        sk.pop();
-        sk.push();
-        sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
-        sk.fill(SPACE_CADET);
-        sk.circle(s * 2, 0, s * 0.75);
-        sk.pop();
-        sk.push();
-        sk.rotate(r + sk.frameCount * 0.003 * r);
-        drawBottle(s, 0, s / 2, r + sk.frameCount * 0.001 * r);
-        sk.pop();
-        sk.push();
-        sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
-        drawAppleCore(s * 1.5, 0, s / 2, r + 10 + sk.frameCount * 0.001 * r);
-        sk.pop();
-        sk.push();
-        sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
-        drawChipPacket(s * 2, 0, s / 2, r + 20 + sk.frameCount * 0.001 * r);
-        sk.pop();
-        drawStar(0, 0, s, ((r + sk.frameCount) % 60) / 60);
+        orbits.forEach(function (_a) {
+            var radius = _a.radius, angle = _a.angle;
+            sk.push();
+            sk.rotate(angle);
+            sk.translate(radius, 0);
+            sk.fill(SPACE_CADET);
+            sk.circle(0, 0, blankSpaceSize);
+            sk.pop();
+        });
+        orbits.forEach(function (_a, i) {
+            var diameter = _a.diameter, radius = _a.radius, angle = _a.angle;
+            sk.push();
+            sk.rotate(angle);
+            sk.translate(radius, 0);
+            var planetAngle = angle + i + (rotationAngle * (3 - 1)) / 3;
+            if (i === 0) {
+                drawBottle(0, 0, planetSize, planetAngle);
+            }
+            else if (i % 2 === 0) {
+                drawChipPacket(0, 0, planetSize, planetAngle);
+            }
+            else if (i === 1 || i % 3 === 0) {
+                drawAppleCore(0, 0, planetSize, planetAngle);
+            }
+            else {
+                drawBottle(0, 0, planetSize, planetAngle);
+            }
+            sk.pop();
+        });
+        drawStar(0, 0, s, t);
         sk.pop();
     }
     function refreshData() {
@@ -412,6 +434,7 @@ var p5BinSketch = new p5(function sketch(sk) {
                 console.log("centrePoint", centrePoint);
                 console.log(filteredData);
                 sk.storeItem(binDataKey, filteredData);
+                sk.storeItem(refreshTimestampKey, Date.now());
             }
         })
             .catch(function (e) { return console.error("Could not refresh data: ", e); });

@@ -20,21 +20,17 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   const fps = 30;
 
   const circleRadius = 5;
+  const refreshInterval = 1000 * 60 * 15; // 15m
 
-  const melbLat = -37.814;
-  const melbLong = 144.96332;
+  const minSystemSize = 3;
+  const maxSystemSize = sk.windowHeight * 0.1;
 
+  const refreshTimestampKey = "sketch-data-refresh-timestamp";
   const binDataKey = "sketch-bin-data";
 
   const date = new Date();
 
   date.setDate(date.getDate() - 1);
-
-  const flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
-
-  let cX = 0;
-  let cY = 0;
-  let cV = 0;
 
   let dataTimer;
 
@@ -59,11 +55,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     console.log("🚀 - Setup initialized - P5 is running");
 
     sk.createCanvas(sk.windowWidth, sk.windowHeight);
-    sk.rectMode(sk.CENTER).noFill();
+    sk.rectMode(sk.CENTER);
     sk.frameRate(30);
 
-    cX = sk.windowWidth / 2;
-    cY = sk.windowHeight / 2;
+    centreX = sk.windowWidth / 2;
+    centreY = sk.windowHeight / 2;
     refreshData();
     // dataTimer = setInterval(() => {
     //   refreshData();
@@ -74,6 +70,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
   sk.draw = () => {
     sk.background(BACKGROUND);
+    sk.push();
+    sk.translate(centreX, centreY);
 
     const data = sk.getItem(binDataKey) as
       | null
@@ -87,6 +85,9 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       // Complete 1 full rotation (2 PI rads) every 5 seconds
       rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
       data.forEach((bin, i) => {
+        // bins can have different amounts of data
+        // we want to start at the beginning and step through each entry and default to the last entry if no more data is available
+
         let binData;
         if (bin.data.length > entry) {
           done = done && false;
@@ -95,6 +96,14 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           binData = bin.data[bin.data.length - 1];
           done = done && true;
         }
+
+        // change data entry every 300 millis
+        if (done && sk.millis() % 300 === 0) {
+          entry += 1;
+        } else {
+          entry = 0;
+        }
+
         if (
           binData.lat_long &&
           "lon" in binData.lat_long &&
@@ -105,27 +114,30 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
             binData.lat_long
           );
 
-          const xx = sk.windowWidth / 2 - x * zoom + centreX;
-          const yy = sk.windowHeight / 2 - y * zoom + centreY;
+          const xx = x * zoom;
+          const yy = y * zoom;
           // console.log(xx, yy)
-          drawStarSystem(xx, yy, starSystemSize, 10 + i);
+          let systemSize = zoom / 25000;
+
+          systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
+          systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
+
+          drawStarSystem(xx, yy, systemSize, i);
         }
       });
     }
+    sk.pop();
   };
 
   // zoom when the user scrolls the mouse wheel.
   sk.mouseWheel = (event: WheelEvent) => {
-    const zoomScrollAmount = 20000;
-    const starSystemScrollAmount = 1;
+    const zoomScrollAmount = 10000;
 
     if (event.deltaY > 0) {
       zoom += zoomScrollAmount;
-      starSystemSize += starSystemScrollAmount;
     } else {
-      zoom -= zoomScrollAmount;
-      if (starSystemSize - starSystemScrollAmount > 0) {
-        starSystemSize -= starSystemScrollAmount;
+      if (zoom - zoomScrollAmount > 0) {
+        zoom -= zoomScrollAmount;
       }
     }
 
@@ -149,7 +161,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     const w = s * 0.42;
     const h = s;
     sk.push();
-    sk.translate(x, y);
     sk.rotate(r);
     sk.noStroke();
 
@@ -373,13 +384,13 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // blank spaces
 
     orbits.forEach(({ radius, angle }) => {
-    sk.push(); // 3
+      sk.push(); // 3
       sk.rotate(angle);
       sk.translate(radius, 0);
-    // blank space
-    sk.fill(SPACE_CADET);
+      // blank space
+      sk.fill(SPACE_CADET);
       sk.circle(0, 0, blankSpaceSize);
-    sk.pop(); // 3
+      sk.pop(); // 3
     });
 
     orbits.forEach(({ diameter, radius, angle }, i) => {
@@ -407,6 +418,18 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   }
 
   function refreshData() {
+    // const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
+    // const data = sk.getItem(binDataKey);
+    // console.log("data", data);
+
+    // console.log("lastRefresh", lastRefresh);
+    // console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
+    // console.log(
+    //   "lastRefresh < Date.now() - refreshInterval",
+    //   lastRefresh < Date.now() - refreshInterval
+    // );
+
+    // if (!data || !lastRefresh || lastRefresh < Date.now() - refreshInterval) {
     getBinSensorDataForDate(date)
       .then((data) => {
         if (data) {
@@ -428,8 +451,10 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
           console.log(filteredData);
           sk.storeItem(binDataKey, filteredData);
+          sk.storeItem(refreshTimestampKey, Date.now());
         }
       })
       .catch((e) => console.error("Could not refresh data: ", e));
   }
+  // }
 });
