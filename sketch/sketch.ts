@@ -43,8 +43,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   let centrePoint = { lat: 0, lon: 0 };
 
   let zoom = 500000;
-  let starSystemSize = 20;
 
+  let rotationAngle = 0;
   let centreX = 0;
   let centreY = 0;
 
@@ -84,6 +84,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
     if (data) {
       let done = true;
+      // Complete 1 full rotation (2 PI rads) every 5 seconds
+      rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
       data.forEach((bin, i) => {
         let binData;
         if (bin.data.length > entry) {
@@ -302,18 +304,18 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
    * @param x x-coordinate of the center of the apple core.
    * @param y y-coordinate of the center of the apple core.
    * @param d diameter of the star.
-   * @param b (optional) brightness 0.0 - 1.0 range.
+   * @param t temperature 0.0 - 1.0 range.
    */
-  function drawStar(x: number, y: number, d: number, b: number) {
+  function drawStar(x: number, y: number, d: number, t: number) {
     sk.push();
     sk.translate(x, y);
     sk.noStroke();
 
-    if (b > 0.75) {
+    if (t > 0.75) {
       sk.fill(CAROLINA_BLUE);
-    } else if (b > 0.5) {
+    } else if (t > 0.5) {
       sk.fill(PARCHMENT);
-    } else if (b > 0.25) {
+    } else if (t > 0.25) {
       sk.fill(CARROT_ORANGE);
     } else {
       sk.fill(CHESTNUT);
@@ -324,58 +326,82 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.pop();
   }
 
-  function drawStarSystem(x: number, y: number, s: number, r: number = 10) {
+  /**
+   * Draws a star system to the canvas.
+   *
+   * @param x x-coordinate of the center of the apple core.
+   * @param y y-coordinate of the center of the apple core.
+   * @param s size - used as the diameter of the star.
+   * @param r (optional) angle of rotation offset, defaults to 1.
+   * @param p (optional) number of planets, defaults to 3.
+   * @param t (optional) temperature of star 0.0 - 1.0 range, defaults to 0.
+   */
+  function drawStarSystem(
+    x: number,
+    y: number,
+    s: number,
+    r: number = 1,
+    p = 3,
+    t = 0
+  ) {
+    const orbits = Array.from(Array(p).keys()).map((i) => {
+      const diameter = s * (2 + i) * 1.25;
+      return {
+        diameter,
+        radius: diameter / 2,
+        // rotation angle + small percentage variation based on planet + rotation offset of system + rotation offset based on planet
+        angle: rotationAngle + (rotationAngle * (3 - i)) / p / 2 + r + i * 2,
+      };
+    });
+
+    const planetSize = s / 2;
+    const blankSpaceSize = s * 0.75;
+
     sk.noStroke();
     sk.push(); // 1
     sk.translate(x, y);
 
-    sk.push(); // 2
     // rings
+    sk.push(); // 2
     sk.noFill();
     sk.stroke(FRENCH_MAUVE);
-    sk.circle(0, 0, s * 2);
-    sk.circle(0, 0, s * 3);
-    sk.circle(0, 0, s * 4);
-
+    orbits.forEach(({ diameter }) => {
+      sk.circle(0, 0, diameter);
+    });
     sk.pop(); // 2
 
+    // blank spaces
+
+    orbits.forEach(({ radius, angle }) => {
     sk.push(); // 3
-    sk.rotate(r + sk.frameCount * 0.003 * r);
+      sk.rotate(angle);
+      sk.translate(radius, 0);
     // blank space
     sk.fill(SPACE_CADET);
-    sk.circle(s, 0, s * 0.75);
+      sk.circle(0, 0, blankSpaceSize);
     sk.pop(); // 3
+    });
 
-    sk.push(); //  4
-    sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
-    // blank space
-    sk.fill(SPACE_CADET);
-    sk.circle(s * 1.5, 0, s * 0.75);
-    sk.pop(); // 4
+    orbits.forEach(({ diameter, radius, angle }, i) => {
+      sk.push();
+      sk.rotate(angle);
+      sk.translate(radius, 0);
 
-    sk.push(); // 5
-    sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
-    // blank space
-    sk.fill(SPACE_CADET);
-    sk.circle(s * 2, 0, s * 0.75);
-    sk.pop(); // 5
+      const planetAngle = angle + i + (rotationAngle * (3 - 1)) / 3;
 
-    sk.push(); // 6
-    sk.rotate(r + sk.frameCount * 0.003 * r);
-    drawBottle(s, 0, s / 2, r + sk.frameCount * 0.001 * r);
-    sk.pop(); // 6
+      if (i === 0) {
+        drawBottle(0, 0, planetSize, planetAngle);
+      } else if (i % 2 === 0) {
+        drawChipPacket(0, 0, planetSize, planetAngle);
+      } else if (i === 1 || i % 3 === 0) {
+        drawAppleCore(0, 0, planetSize, planetAngle);
+      } else {
+        drawBottle(0, 0, planetSize, planetAngle);
+      }
+      sk.pop();
+    });
 
-    sk.push(); // 7
-    sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
-    drawAppleCore(s * 1.5, 0, s / 2, r + 10 + sk.frameCount * 0.001 * r);
-    sk.pop(); // 7
-
-    sk.push(); // 8
-    sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
-    drawChipPacket(s * 2, 0, s / 2, r + 20 + sk.frameCount * 0.001 * r);
-    sk.pop(); // 8
-
-    drawStar(0, 0, s, ((r + sk.frameCount) % 60) / 60);
+    drawStar(0, 0, s, t);
 
     sk.pop(); // 1
   }
