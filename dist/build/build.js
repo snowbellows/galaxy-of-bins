@@ -169,251 +169,252 @@ var PISTACHIO = "#B4DC7F";
 var SPACE_CADET = "#2B2D42";
 var LAVENDER_GREY = "#a3a6c9";
 var BACKGROUND = SPACE_CADET;
-var g = 9.8;
-var pixelsPerMetre = 3780;
-var fps = 30;
-var circleRadius = 5;
-var melbLat = -37.814;
-var melbLong = 144.96332;
-var binDataKey = "sketch-bin-data";
-var date = new Date();
-date.setDate(date.getDate() - 1);
-var flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
-var cX = 0;
-var cY = 0;
-var cV = 0;
-var dataTimer;
-var entry = 0;
-var centrePoint = { lat: 0, lon: 0 };
-var zoom = 500000;
-var starSystemSize = 20;
-var centreX = 0;
-var centreY = 0;
-function differenceLatLon(ll0, ll1) {
-    return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
-}
-function setup() {
-    console.log("🚀 - Setup initialized - P5 is running");
-    createCanvas(windowWidth, windowHeight);
-    rectMode(CENTER).noFill();
-    frameRate(30);
-    cX = windowWidth / 2;
-    cY = windowHeight / 2;
-    refreshData();
-}
-function draw() {
-    background(BACKGROUND);
-    var data = getItem(binDataKey);
-    if (data) {
-        var done_1 = true;
-        data.forEach(function (bin, i) {
-            var binData;
-            if (bin.data.length > entry) {
-                done_1 = done_1 && false;
-                binData = bin.data[entry];
-            }
-            else {
-                binData = bin.data[bin.data.length - 1];
-                done_1 = done_1 && true;
-            }
-            if (binData.lat_long &&
-                "lon" in binData.lat_long &&
-                "lat" in binData.lat_long) {
-                var _a = differenceLatLon(centrePoint, binData.lat_long), x = _a.lon, y = _a.lat;
-                var xx = windowWidth / 2 - x * zoom + centreX;
-                var yy = windowHeight / 2 - y * zoom + centreY;
-                drawStarSystem(xx, yy, starSystemSize, 10 + i);
-            }
-        });
-    }
-}
-function mouseWheel(event) {
-    var zoomScrollAmount = 20000;
-    var starSystemScrollAmount = 1;
-    if (event.deltaY > 0) {
-        zoom += zoomScrollAmount;
-        starSystemSize += starSystemScrollAmount;
-    }
-    else {
-        zoom -= zoomScrollAmount;
-        if (starSystemSize - starSystemScrollAmount > 0) {
-            starSystemSize -= starSystemScrollAmount;
-        }
-    }
-    return false;
-}
-function mouseDragged(event) {
-    centreX += event.movementX;
-    centreY += event.movementY;
-}
-function drawBottle(x, y, s, r) {
-    if (r === void 0) { r = 0; }
-    var w = s * 0.42;
-    var h = s;
-    push();
-    translate(x, y);
-    rotate(r);
-    noStroke();
-    fill(CAROLINA_BLUE);
-    var rX = 0;
-    var rW = w;
+var p5BinSketch = new p5(function sketch(sk) {
+    var g = 9.8;
+    var pixelsPerMetre = 3780;
+    var fps = 30;
+    var circleRadius = 5;
+    var melbLat = -37.814;
+    var melbLong = 144.96332;
+    var binDataKey = "sketch-bin-data";
+    var date = new Date();
+    date.setDate(date.getDate() - 1);
+    var flindersStStation = { lat: -37.81854975968999, lon: 144.9637863723553 };
     var cX = 0;
-    var cD = w;
-    var eX = 0;
-    var eW = w;
-    var eH = w / 2;
-    var rY = 0;
-    var rH = h - (cD / 2 + eH / 2);
-    var cY = rY - rH / 2;
-    var eY = rY + rH / 2;
-    circle(cX, cY, cD);
-    rect(rX, rY, rW, rH);
-    ellipse(eX, eY, eW, eH);
-    var capW = w / 3;
-    var capH = w / 3;
-    fill(PARCHMENT);
-    rect(0, cY - cD / 2, capW, capH, w / 10);
-    fill(FRENCH_MAUVE);
-    var lH = rH / 2;
-    var lrX = rY - lH / 3;
-    rect(0, lrX, rW, lH);
-    ellipse(0, lrX + lH / 2, eW, eH);
-    fill(CAROLINA_BLUE);
-    ellipse(0, lrX - lH / 2, eW, eH);
-    pop();
-}
-function drawAppleCore(x, y, s, r) {
-    if (r === void 0) { r = 0; }
-    var h = s * 0.6;
-    var w = h / 2;
-    push();
-    translate(x, y);
-    rotate(r);
-    noStroke();
-    var seH = w / 3;
-    var rH = h - seH / 2;
-    fill(PISTACHIO);
-    rect(0, rH / 2, w, seH, s / 10);
-    fill(PEACH);
-    rect(0, 0, w, rH);
-    fill(BACKGROUND);
-    ellipse(-(w / 2), 0, w / 2, h);
-    ellipse(w / 2, 0, w / 2, h);
-    fill(PISTACHIO);
-    ellipse(0, -rH / 2, w, seH);
-    fill(AUTUMN_BROWN);
-    var sH = s / 5;
-    push();
-    translate(0, -rH / 2 - sH / 2);
-    rotate(0.2);
-    rect(0, 0, sH / 3, sH);
-    pop();
-    push();
-    rotate(-0.2);
-    ellipse(w / 15, -w / 12, w / 6, w / 4);
-    pop();
-    pop();
-}
-function drawChipPacket(x, y, s, r) {
-    if (r === void 0) { r = 0; }
-    var h = s * 0.8;
-    var w = h * 0.8;
-    push();
-    translate(x, y);
-    rotate(r);
-    noStroke();
-    fill(AMARANTH_PINK);
-    var feH = s / 5;
-    var rH = h - feH / 2;
-    rect(0, feH / 2, w, rH);
-    fill(LAVENDER_GREY);
-    rect(0, -(rH / 2) + feH / 2, w, feH, feH / 2);
-    var bfrH = feH / 3;
-    rect(0, rH / 2 + feH / 2 - bfrH / 2, w, bfrH);
-    fill(FRENCH_MAUVE);
-    rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
-    pop();
-}
-function drawStar(x, y, d, b) {
-    push();
-    translate(x, y);
-    noStroke();
-    if (b > 0.75) {
-        fill(CAROLINA_BLUE);
+    var cY = 0;
+    var cV = 0;
+    var dataTimer;
+    var entry = 0;
+    var centrePoint = { lat: 0, lon: 0 };
+    var zoom = 500000;
+    var starSystemSize = 20;
+    var centreX = 0;
+    var centreY = 0;
+    function differenceLatLon(ll0, ll1) {
+        return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
     }
-    else if (b > 0.5) {
-        fill(PARCHMENT);
-    }
-    else if (b > 0.25) {
-        fill(CARROT_ORANGE);
-    }
-    else {
-        fill(CHESTNUT);
-    }
-    circle(0, 0, d);
-    pop();
-}
-function drawStarSystem(x, y, s, r) {
-    if (r === void 0) { r = 10; }
-    noStroke();
-    push();
-    translate(x, y);
-    push();
-    noFill();
-    stroke(FRENCH_MAUVE);
-    circle(0, 0, s * 2);
-    circle(0, 0, s * 3);
-    circle(0, 0, s * 4);
-    pop();
-    push();
-    rotate(r + frameCount * 0.003 * r);
-    fill(SPACE_CADET);
-    circle(s, 0, s * 0.75);
-    pop();
-    push();
-    rotate(r + 10 + frameCount * 0.002 * r);
-    fill(SPACE_CADET);
-    circle(s * 1.5, 0, s * 0.75);
-    pop();
-    push();
-    rotate(r + 20 + frameCount * 0.001 * r);
-    fill(SPACE_CADET);
-    circle(s * 2, 0, s * 0.75);
-    pop();
-    push();
-    rotate(r + frameCount * 0.003 * r);
-    drawBottle(s, 0, s / 2, r + frameCount * 0.001 * r);
-    pop();
-    push();
-    rotate(r + 10 + frameCount * 0.002 * r);
-    drawAppleCore(s * 1.5, 0, s / 2, r + 10 + frameCount * 0.001 * r);
-    pop();
-    push();
-    rotate(r + 20 + frameCount * 0.001 * r);
-    drawChipPacket(s * 2, 0, s / 2, r + 20 + frameCount * 0.001 * r);
-    pop();
-    drawStar(0, 0, s, ((r + frameCount) % 60) / 60);
-    pop();
-}
-function refreshData() {
-    getBinSensorDataForDate(date)
-        .then(function (data) {
+    sk.setup = function () {
+        console.log("🚀 - Setup initialized - P5 is running");
+        sk.createCanvas(sk.windowWidth, sk.windowHeight);
+        sk.rectMode(sk.CENTER).noFill();
+        sk.frameRate(30);
+        cX = sk.windowWidth / 2;
+        cY = sk.windowHeight / 2;
+        refreshData();
+    };
+    sk.draw = function () {
+        sk.background(BACKGROUND);
+        var data = sk.getItem(binDataKey);
         if (data) {
-            var filteredData = data.filter(function (d) { return d.data[0].lat_long !== null; });
-            var _a = filteredData.reduce(function (acc, d) {
-                var dll = d.data[0].lat_long;
-                console.log("dll", dll);
-                return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
-            }, { lat: 0, lon: 0 }), lat = _a.lat, lon = _a.lon;
-            centrePoint = {
-                lat: lat / filteredData.length,
-                lon: lon / filteredData.length,
-            };
-            console.log("centrePoint", centrePoint);
-            console.log(filteredData);
-            storeItem(binDataKey, filteredData);
+            var done_1 = true;
+            data.forEach(function (bin, i) {
+                var binData;
+                if (bin.data.length > entry) {
+                    done_1 = done_1 && false;
+                    binData = bin.data[entry];
+                }
+                else {
+                    binData = bin.data[bin.data.length - 1];
+                    done_1 = done_1 && true;
+                }
+                if (binData.lat_long &&
+                    "lon" in binData.lat_long &&
+                    "lat" in binData.lat_long) {
+                    var _a = differenceLatLon(centrePoint, binData.lat_long), x = _a.lon, y = _a.lat;
+                    var xx = sk.windowWidth / 2 - x * zoom + centreX;
+                    var yy = sk.windowHeight / 2 - y * zoom + centreY;
+                    drawStarSystem(xx, yy, starSystemSize, 10 + i);
+                }
+            });
         }
-    })
-        .catch(function (e) { return console.error("Could not refresh data: ", e); });
-}
+    };
+    sk.mouseWheel = function (event) {
+        var zoomScrollAmount = 20000;
+        var starSystemScrollAmount = 1;
+        if (event.deltaY > 0) {
+            zoom += zoomScrollAmount;
+            starSystemSize += starSystemScrollAmount;
+        }
+        else {
+            zoom -= zoomScrollAmount;
+            if (starSystemSize - starSystemScrollAmount > 0) {
+                starSystemSize -= starSystemScrollAmount;
+            }
+        }
+        return false;
+    };
+    sk.mouseDragged = function (event) {
+        centreX += event.movementX;
+        centreY += event.movementY;
+    };
+    function drawBottle(x, y, s, r) {
+        if (r === void 0) { r = 0; }
+        var w = s * 0.42;
+        var h = s;
+        sk.push();
+        sk.translate(x, y);
+        sk.rotate(r);
+        sk.noStroke();
+        sk.fill(CAROLINA_BLUE);
+        var rX = 0;
+        var rW = w;
+        var cX = 0;
+        var cD = w;
+        var eX = 0;
+        var eW = w;
+        var eH = w / 2;
+        var rY = 0;
+        var rH = h - (cD / 2 + eH / 2);
+        var cY = rY - rH / 2;
+        var eY = rY + rH / 2;
+        sk.circle(cX, cY, cD);
+        sk.rect(rX, rY, rW, rH);
+        sk.ellipse(eX, eY, eW, eH);
+        var capW = w / 3;
+        var capH = w / 3;
+        sk.fill(PARCHMENT);
+        sk.rect(0, cY - cD / 2, capW, capH, w / 10);
+        sk.fill(FRENCH_MAUVE);
+        var lH = rH / 2;
+        var lrX = rY - lH / 3;
+        sk.rect(0, lrX, rW, lH);
+        sk.ellipse(0, lrX + lH / 2, eW, eH);
+        sk.fill(CAROLINA_BLUE);
+        sk.ellipse(0, lrX - lH / 2, eW, eH);
+        sk.pop();
+    }
+    function drawAppleCore(x, y, s, r) {
+        if (r === void 0) { r = 0; }
+        var h = s * 0.6;
+        var w = h / 2;
+        sk.push();
+        sk.translate(x, y);
+        sk.rotate(r);
+        sk.noStroke();
+        var seH = w / 3;
+        var rH = h - seH / 2;
+        sk.fill(PISTACHIO);
+        sk.rect(0, rH / 2, w, seH, s / 10);
+        sk.fill(PEACH);
+        sk.rect(0, 0, w, rH);
+        sk.fill(BACKGROUND);
+        sk.ellipse(-(w / 2), 0, w / 2, h);
+        sk.ellipse(w / 2, 0, w / 2, h);
+        sk.fill(PISTACHIO);
+        sk.ellipse(0, -rH / 2, w, seH);
+        sk.fill(AUTUMN_BROWN);
+        var sH = s / 5;
+        sk.push();
+        sk.translate(0, -rH / 2 - sH / 2);
+        sk.rotate(0.2);
+        sk.rect(0, 0, sH / 3, sH);
+        sk.pop();
+        sk.push();
+        sk.rotate(-0.2);
+        sk.ellipse(w / 15, -w / 12, w / 6, w / 4);
+        sk.pop();
+        sk.pop();
+    }
+    function drawChipPacket(x, y, s, r) {
+        if (r === void 0) { r = 0; }
+        var h = s * 0.8;
+        var w = h * 0.8;
+        sk.push();
+        sk.translate(x, y);
+        sk.rotate(r);
+        sk.noStroke();
+        sk.fill(AMARANTH_PINK);
+        var feH = s / 5;
+        var rH = h - feH / 2;
+        sk.rect(0, feH / 2, w, rH);
+        sk.fill(LAVENDER_GREY);
+        sk.rect(0, -(rH / 2) + feH / 2, w, feH, feH / 2);
+        var bfrH = feH / 3;
+        sk.rect(0, rH / 2 + feH / 2 - bfrH / 2, w, bfrH);
+        sk.fill(FRENCH_MAUVE);
+        sk.rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
+        sk.pop();
+    }
+    function drawStar(x, y, d, b) {
+        sk.push();
+        sk.translate(x, y);
+        sk.noStroke();
+        if (b > 0.75) {
+            sk.fill(CAROLINA_BLUE);
+        }
+        else if (b > 0.5) {
+            sk.fill(PARCHMENT);
+        }
+        else if (b > 0.25) {
+            sk.fill(CARROT_ORANGE);
+        }
+        else {
+            sk.fill(CHESTNUT);
+        }
+        sk.circle(0, 0, d);
+        sk.pop();
+    }
+    function drawStarSystem(x, y, s, r) {
+        if (r === void 0) { r = 10; }
+        sk.noStroke();
+        sk.push();
+        sk.translate(x, y);
+        sk.push();
+        sk.noFill();
+        sk.stroke(FRENCH_MAUVE);
+        sk.circle(0, 0, s * 2);
+        sk.circle(0, 0, s * 3);
+        sk.circle(0, 0, s * 4);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + sk.frameCount * 0.003 * r);
+        sk.fill(SPACE_CADET);
+        sk.circle(s, 0, s * 0.75);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
+        sk.fill(SPACE_CADET);
+        sk.circle(s * 1.5, 0, s * 0.75);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
+        sk.fill(SPACE_CADET);
+        sk.circle(s * 2, 0, s * 0.75);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + sk.frameCount * 0.003 * r);
+        drawBottle(s, 0, s / 2, r + sk.frameCount * 0.001 * r);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + 10 + sk.frameCount * 0.002 * r);
+        drawAppleCore(s * 1.5, 0, s / 2, r + 10 + sk.frameCount * 0.001 * r);
+        sk.pop();
+        sk.push();
+        sk.rotate(r + 20 + sk.frameCount * 0.001 * r);
+        drawChipPacket(s * 2, 0, s / 2, r + 20 + sk.frameCount * 0.001 * r);
+        sk.pop();
+        drawStar(0, 0, s, ((r + sk.frameCount) % 60) / 60);
+        sk.pop();
+    }
+    function refreshData() {
+        getBinSensorDataForDate(date)
+            .then(function (data) {
+            if (data) {
+                var filteredData = data.filter(function (d) { return d.data[0].lat_long !== null; });
+                var _a = filteredData.reduce(function (acc, d) {
+                    var dll = d.data[0].lat_long;
+                    return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+                }, { lat: 0, lon: 0 }), lat = _a.lat, lon = _a.lon;
+                centrePoint = {
+                    lat: lat / filteredData.length,
+                    lon: lon / filteredData.length,
+                };
+                console.log("centrePoint", centrePoint);
+                console.log(filteredData);
+                sk.storeItem(binDataKey, filteredData);
+            }
+        })
+            .catch(function (e) { return console.error("Could not refresh data: ", e); });
+    }
+});
 //# sourceMappingURL=build.js.map
