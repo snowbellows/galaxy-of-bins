@@ -199,10 +199,12 @@ var p5BinSketch = new p5(function sketch(sk) {
     var dataTimer;
     var entry = 0;
     var entryCounter = 0;
-    var zoom = 500000;
+    var zoom = 750000;
     var rotationAngle = 0;
     var centreX = 0;
     var centreY = 0;
+    var reverse = false;
+    var touchDrag = [0, 0];
     function differenceLatLon(ll0, ll1) {
         return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
     }
@@ -229,7 +231,11 @@ var p5BinSketch = new p5(function sketch(sk) {
             rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
             data.forEach(function (bin, i) {
                 var binData;
-                if (bin.data.length > entry) {
+                if (entry < 0) {
+                    done_1 = done_1 && true;
+                    binData = bin.data[0];
+                }
+                else if (bin.data.length > entry) {
                     done_1 = done_1 && false;
                     binData = bin.data[entry];
                 }
@@ -239,10 +245,11 @@ var p5BinSketch = new p5(function sketch(sk) {
                 }
                 if (done_1) {
                     console.log("done");
-                    entry = 0;
+                    reverse = !reverse;
+                    entry += 1 * (reverse ? -1 : 1);
                 }
                 else if (entryCounter > 1000) {
-                    entry += 1;
+                    entry += 1 * (reverse ? -1 : 1);
                     entryCounter = 0;
                 }
                 else {
@@ -254,7 +261,7 @@ var p5BinSketch = new p5(function sketch(sk) {
                     var _a = differenceLatLon(centrePoint, binData.lat_long), x = _a.lon, y = _a.lat;
                     var xx = x * zoom;
                     var yy = y * zoom;
-                    var systemSize = zoom / 25000;
+                    var systemSize = zoom / 30000;
                     systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
                     systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
                     var fill_level = binData.filllevel
@@ -281,8 +288,37 @@ var p5BinSketch = new p5(function sketch(sk) {
         return false;
     };
     sk.mouseDragged = function (event) {
-        centreX += event.movementX;
-        centreY += event.movementY;
+        console.log("mouseDragged:", event.movementX, event.movementY);
+        if (event.movementX && event.movementY) {
+            centreX += event.movementX;
+            centreY += event.movementY;
+        }
+        return false;
+    };
+    sk.touchStarted = function () {
+        if (sk.touches.length === 1) {
+            var touch = sk.touches[0];
+            console.log("touchStarted:", touch.x, touch.y);
+            if ((touch.x, touch.y)) {
+                touchDrag = [touch.x, touch.y];
+            }
+        }
+        return false;
+    };
+    sk.touchMoved = function (event) {
+        if (sk.touches.length === 1) {
+            var touch = sk.touches[0];
+            if ((touch.x, touch.y)) {
+                centreX += (touch.x - touchDrag[0]) / 20;
+                centreY += (touch.y - touchDrag[1]) / 20;
+            }
+        }
+        if (event.touches.length === 2) {
+            var zoomScrollAmount = 10000;
+            var scale = event.scale;
+            var direction = scale >= 1 ? 1 : -1;
+            zoom += zoomScrollAmount * scale * direction;
+        }
         return false;
     };
     function drawBottle(x, y, s, r) {
@@ -403,7 +439,8 @@ var p5BinSketch = new p5(function sketch(sk) {
                 diameter: diameter,
                 radius: diameter / 2,
                 angle: rotationAngle +
-                    (rotationAngle * (maxPlanets - i)) / maxPlanets / 2 +
+                    r +
+                    ((rotationAngle + r) * (maxPlanets - i)) / maxPlanets / 2 +
                     r +
                     i * 2,
             };
@@ -440,11 +477,6 @@ var p5BinSketch = new p5(function sketch(sk) {
         var lastRefresh = sk.getItem(refreshTimestampKey);
         var data = sk.getItem(binDataKey);
         var centrePoint = sk.getItem(centrePointKey);
-        console.log("data", data);
-        console.log("lastRefresh", lastRefresh);
-        console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
-        console.log("lastRefresh < Date.now() - refreshInterval", lastRefresh < Date.now() - refreshInterval);
-        console.log(centrePoint, data);
         if (data === null ||
             centrePoint === null ||
             lastRefresh < Date.now() - refreshInterval) {
@@ -460,8 +492,6 @@ var p5BinSketch = new p5(function sketch(sk) {
                         lat: lat / filteredData.length,
                         lon: lon / filteredData.length,
                     };
-                    console.log("centrePoint", centre);
-                    console.log(filteredData);
                     sk.storeItem(centrePointKey, centre);
                     sk.storeItem(binDataKey, filteredData);
                     sk.storeItem(refreshTimestampKey, Date.now());
