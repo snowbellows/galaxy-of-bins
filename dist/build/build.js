@@ -188,18 +188,22 @@ var LAVENDER_GREY = "#a3a6c9";
 var BACKGROUND = SPACE_CADET;
 var p5BinSketch = new p5(function sketch(sk) {
     var refreshInterval = 1000 * 60 * 60;
-    var maxPlanets = 5;
+    var maxPlanets = 3;
     var minSystemSize = 3;
     var maxSystemSize = sk.windowHeight * 0.1;
     var refreshTimestampKey = "sketch-data-refresh-timestamp";
     var binDataKey = "sketch-bin-data";
     var centrePointKey = "sketch-bin-centre-point";
+    var textKey = "sketch-bin-text";
     var date = new Date();
     date.setDate(date.getDate() - 5);
     var dataTimer;
     var entry = 0;
     var entryCounter = 0;
-    var zoom = 750000;
+    var zoom = 1000000;
+    var textY = 0;
+    var textPage = 0;
+    var textHeight = 16;
     var rotationAngle = 0;
     var centreX = 0;
     var centreY = 0;
@@ -220,12 +224,34 @@ var p5BinSketch = new p5(function sketch(sk) {
     };
     sk.draw = function () {
         var c = sk.color(BACKGROUND);
-        c.setAlpha(120);
         sk.background(c);
+        var data = sk.getItem(binDataKey);
+        var text = sk.getItem(textKey);
+        if (text) {
+            sk.push();
+            sk.rectMode("corner");
+            textY += sk.deltaTime / 100;
+            if (textY > 1 * textHeight) {
+                textY = 0;
+                textPage += 1;
+            }
+            if (textPage >= text.length) {
+                textPage = 0;
+            }
+            var c_1 = sk.color(PISTACHIO);
+            c_1.setAlpha(30);
+            sk.fill(c_1);
+            sk.textFont("Courier New");
+            sk.textSize(textHeight);
+            var textRows_1 = sk.ceil(sk.windowHeight / textHeight) + 4;
+            text.slice(textPage, textPage + textRows_1).forEach(function (t, i) {
+                sk.text(t, 0, textY + textRows_1 * textHeight - ((i + 3) * textHeight), sk.windowWidth, textHeight);
+            });
+            sk.pop();
+        }
+        var centrePoint = sk.getItem(centrePointKey);
         sk.push();
         sk.translate(centreX, centreY);
-        var data = sk.getItem(binDataKey);
-        var centrePoint = sk.getItem(centrePointKey);
         if (data && centrePoint) {
             var done_1 = true;
             rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
@@ -244,7 +270,6 @@ var p5BinSketch = new p5(function sketch(sk) {
                     done_1 = done_1 && true;
                 }
                 if (done_1) {
-                    console.log("done");
                     reverse = !reverse;
                     entry += 1 * (reverse ? -1 : 1);
                 }
@@ -288,7 +313,6 @@ var p5BinSketch = new p5(function sketch(sk) {
         return false;
     };
     sk.mouseDragged = function (event) {
-        console.log("mouseDragged:", event.movementX, event.movementY);
         if (event.movementX && event.movementY) {
             centreX += event.movementX;
             centreY += event.movementY;
@@ -298,7 +322,6 @@ var p5BinSketch = new p5(function sketch(sk) {
     sk.touchStarted = function () {
         if (sk.touches.length === 1) {
             var touch = sk.touches[0];
-            console.log("touchStarted:", touch.x, touch.y);
             if ((touch.x, touch.y)) {
                 touchDrag = [touch.x, touch.y];
             }
@@ -450,6 +473,26 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.noStroke();
         sk.push();
         sk.translate(x, y);
+        sk.push();
+        sk.noFill();
+        var c = sk.color(FRENCH_MAUVE);
+        c.setAlpha(100);
+        sk.strokeWeight(2);
+        sk.stroke(c);
+        orbits.forEach(function (_a) {
+            var diameter = _a.diameter;
+            sk.circle(0, 0, diameter);
+        });
+        sk.pop();
+        orbits.forEach(function (_a) {
+            var radius = _a.radius, angle = _a.angle;
+            sk.push();
+            sk.rotate(angle);
+            sk.translate(radius, 0);
+            sk.fill(SPACE_CADET);
+            sk.circle(0, 0, blankSpaceSize);
+            sk.pop();
+        });
         orbits.forEach(function (_a, i) {
             var diameter = _a.diameter, radius = _a.radius, angle = _a.angle;
             sk.push();
@@ -477,8 +520,10 @@ var p5BinSketch = new p5(function sketch(sk) {
         var lastRefresh = sk.getItem(refreshTimestampKey);
         var data = sk.getItem(binDataKey);
         var centrePoint = sk.getItem(centrePointKey);
+        var text = sk.getItem(textKey);
         if (data === null ||
             centrePoint === null ||
+            text === null ||
             lastRefresh < Date.now() - refreshInterval) {
             getBinSensorDataForDate(date)
                 .then(function (data) {
@@ -492,9 +537,13 @@ var p5BinSketch = new p5(function sketch(sk) {
                         lat: lat / filteredData.length,
                         lon: lon / filteredData.length,
                     };
+                    var text_1 = data
+                        .flatMap(function (b) { return b.data; })
+                        .map(function (d) { return JSON.stringify(d); });
                     sk.storeItem(centrePointKey, centre);
                     sk.storeItem(binDataKey, filteredData);
                     sk.storeItem(refreshTimestampKey, Date.now());
+                    sk.storeItem(textKey, text_1);
                 }
             })
                 .catch(function (e) { return console.error("Could not refresh data: ", e); });

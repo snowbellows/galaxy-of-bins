@@ -16,7 +16,7 @@ const BACKGROUND = SPACE_CADET;
 let p5BinSketch = new p5(function sketch(sk: p5) {
   const refreshInterval = 1000 * 60 * 60; // 1h
 
-  const maxPlanets = 5;
+  const maxPlanets = 3;
 
   const minSystemSize = 3;
   const maxSystemSize = sk.windowHeight * 0.1;
@@ -24,6 +24,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   const refreshTimestampKey = "sketch-data-refresh-timestamp";
   const binDataKey = "sketch-bin-data";
   const centrePointKey = "sketch-bin-centre-point";
+  const textKey = "sketch-bin-text";
 
   const date = new Date();
 
@@ -34,7 +35,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   let entry = 0;
   let entryCounter = 0;
 
-  let zoom = 750000;
+  let zoom = 1000000;
+
+  let textY = 0;
+  let textPage = 0;
+  const textHeight = 16;
 
   let rotationAngle = 0;
   let centreX = 0;
@@ -71,10 +76,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
   sk.draw = () => {
     let c = sk.color(BACKGROUND);
-    c.setAlpha(120);
+    // c.setAlpha(120);
     sk.background(c);
-    sk.push();
-    sk.translate(centreX, centreY);
 
     const data = sk.getItem(binDataKey) as
       | null
@@ -83,10 +86,40 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           data: BinSensorDataEntry[];
         }[];
 
+    const text = sk.getItem(textKey) as string[];
+    if (text) {
+      sk.push();
+      sk.rectMode("corner")
+      textY += sk.deltaTime / 100;
+      if (textY > 1 * textHeight) {
+        textY = 0
+        textPage +=1
+      }
+      if (textPage >= text.length) {
+        textPage = 0
+      }
+      let c = sk.color(PISTACHIO);
+      c.setAlpha(30);
+      sk.fill(c);
+      // sk.stroke(AMARANTH_PINK)
+      sk.textFont("Courier New");
+      sk.textSize(textHeight);
+
+      const textRows = sk.ceil(sk.windowHeight / textHeight) + 4
+
+      text.slice(textPage, textPage + textRows).forEach((t, i) => {
+        sk.text(t, 0, textY + textRows * textHeight - ( (i + 3) * textHeight), sk.windowWidth, textHeight);
+      });
+      sk.pop();
+    }
+
     const centrePoint = sk.getItem(centrePointKey) as null | {
       lat: number;
       lon: number;
     };
+
+    sk.push();
+    sk.translate(centreX, centreY);
     // console.log(centrePoint)
     if (data && centrePoint) {
       let done = true;
@@ -110,7 +143,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
         // change data entry every 300 millis
         if (done) {
-          console.log("done");
           reverse = !reverse;
           entry += 1 * (reverse ? -1 : 1);
         } else if (entryCounter > 1000) {
@@ -174,8 +206,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   };
 
   sk.mouseDragged = (event: MouseEvent) => {
-    console.log("mouseDragged:", event.movementX, event.movementY);
-
     if (event.movementX && event.movementY) {
       centreX += event.movementX;
       centreY += event.movementY;
@@ -186,7 +216,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   sk.touchStarted = () => {
     if (sk.touches.length === 1) {
       const touch = sk.touches[0] as { x: number; y: number };
-      console.log("touchStarted:", touch.x, touch.y);
 
       if ((touch.x, touch.y)) {
         touchDrag = [touch.x, touch.y];
@@ -452,25 +481,28 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.translate(x, y);
 
     // rings
-    // sk.push(); // 2
-    // sk.noFill();
-    // sk.stroke(FRENCH_MAUVE);
-    // orbits.forEach(({ diameter }) => {
-    //   sk.circle(0, 0, diameter);
-    // });
-    // sk.pop(); // 2
+    sk.push(); // 2
+    sk.noFill();
+    let c = sk.color(FRENCH_MAUVE);
+    c.setAlpha(100);
+    sk.strokeWeight(2)
+    sk.stroke(c);
+    orbits.forEach(({ diameter }) => {
+      sk.circle(0, 0, diameter);
+    });
+    sk.pop(); // 2
 
     // blank spaces
 
-    // orbits.forEach(({ radius, angle }) => {
-    //   sk.push(); // 3
-    //   sk.rotate(angle);
-    //   sk.translate(radius, 0);
-    //   // blank space
-    //   sk.fill(SPACE_CADET);
-    //   sk.circle(0, 0, blankSpaceSize);
-    //   sk.pop(); // 3
-    // });
+    orbits.forEach(({ radius, angle }) => {
+      sk.push(); // 3
+      sk.rotate(angle);
+      sk.translate(radius, 0);
+      // blank space
+      sk.fill(SPACE_CADET);
+      sk.circle(0, 0, blankSpaceSize);
+      sk.pop(); // 3
+    });
 
     orbits.forEach(({ diameter, radius, angle }, i) => {
       sk.push();
@@ -500,6 +532,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
     const data = sk.getItem(binDataKey);
     const centrePoint = sk.getItem(centrePointKey);
+    const text = sk.getItem(textKey);
 
     // console.log("data", data);
 
@@ -513,6 +546,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     if (
       data === null ||
       centrePoint === null ||
+      text === null ||
       lastRefresh < Date.now() - refreshInterval
     ) {
       getBinSensorDataForDate(date)
@@ -534,6 +568,10 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
               lon: lon / filteredData.length,
             };
 
+            const text = data
+              .flatMap((b) => b.data)
+              .map((d) => JSON.stringify(d));
+
             // console.log("centrePoint", centre);
 
             // console.log(filteredData);
@@ -541,6 +579,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
             sk.storeItem(centrePointKey, centre);
             sk.storeItem(binDataKey, filteredData);
             sk.storeItem(refreshTimestampKey, Date.now());
+            sk.storeItem(textKey, text);
           }
         })
         .catch((e) => console.error("Could not refresh data: ", e));
