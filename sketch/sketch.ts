@@ -23,7 +23,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
   const refreshTimestampKey = "sketch-data-refresh-timestamp";
   const binDataKey = "sketch-bin-data";
-  const centrePointKey = "sketch-bin-centre-point"
+  const centrePointKey = "sketch-bin-centre-point";
 
   const date = new Date();
 
@@ -79,8 +79,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           data: BinSensorDataEntry[];
         }[];
 
-    const centrePoint = sk.getItem(centrePointKey) as null | { lat: number, lon: number }
-        // console.log(centrePoint)
+    const centrePoint = sk.getItem(centrePointKey) as null | {
+      lat: number;
+      lon: number;
+    };
+    // console.log(centrePoint)
     if (data && centrePoint) {
       let done = true;
       // Complete 1 full rotation (2 PI rads) every 5 seconds
@@ -165,6 +168,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   sk.mouseDragged = (event: MouseEvent) => {
     centreX += event.movementX;
     centreY += event.movementY;
+
+    return false;
   };
 
   /**
@@ -456,8 +461,12 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       "lastRefresh < Date.now() - refreshInterval",
       lastRefresh < Date.now() - refreshInterval
     );
-    console.log(centrePoint, data)
-    if (data === null || centrePoint === null || lastRefresh < Date.now() - refreshInterval) {
+    console.log(centrePoint, data);
+    if (
+      data === null ||
+      centrePoint === null ||
+      lastRefresh < Date.now() - refreshInterval
+    ) {
       getBinSensorDataForDate(date)
         .then((data) => {
           if (data) {
@@ -481,7 +490,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
             console.log(filteredData);
 
-            sk.storeItem(centrePointKey, centre)
+            sk.storeItem(centrePointKey, centre);
             sk.storeItem(binDataKey, filteredData);
             sk.storeItem(refreshTimestampKey, Date.now());
           }

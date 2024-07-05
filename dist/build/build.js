@@ -283,6 +283,7 @@ var p5BinSketch = new p5(function sketch(sk) {
     sk.mouseDragged = function (event) {
         centreX += event.movementX;
         centreY += event.movementY;
+        return false;
     };
     function drawBottle(x, y, s, r) {
         if (r === void 0) { r = 0; }
@@ -444,7 +445,9 @@ var p5BinSketch = new p5(function sketch(sk) {
         console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
         console.log("lastRefresh < Date.now() - refreshInterval", lastRefresh < Date.now() - refreshInterval);
         console.log(centrePoint, data);
-        if (data === null || centrePoint === null || lastRefresh < Date.now() - refreshInterval) {
+        if (data === null ||
+            centrePoint === null ||
+            lastRefresh < Date.now() - refreshInterval) {
             getBinSensorDataForDate(date)
                 .then(function (data) {
                 if (data) {
