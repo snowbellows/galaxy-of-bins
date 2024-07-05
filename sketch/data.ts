@@ -61,7 +61,9 @@ function isBinSensorDevIds(data: any): data is BinSensorDevIdReturnType {
 
 async function getBinSensorData(
   id?: string,
-  after_date?: Date
+  after_date?: Date,
+  offset: number = 0,
+  results: BinSensorDataReturnType["results"] = []
 ): Promise<BinSensorDataReturnType["results"]> {
   const url = melbDataUrl(binSensorDatasetId);
 
@@ -84,7 +86,12 @@ async function getBinSensorData(
     if (!isBinSensorData(json)) {
       throw new Error(`Unexpected response format: ${json}`);
     }
-    return json.results;
+    if (json.total_count < offset + 100) {
+      return [...results, ...json.results];
+
+    } else {
+      return getBinSensorData(id, after_date, offset + 100, [...results, ...json.results])
+    }
   } catch (e) {
     if (e instanceof Error) {
       console.log(`Request for ${url} failed:`, e.message);

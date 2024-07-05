@@ -34,6 +34,15 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 var melbOpenDataBaseUrl = "https://data.melbourne.vic.gov.au/api/explore/v2.1/catalog/datasets/";
 var binSensorDatasetId = "netvox-r718x-bin-sensor";
 function melbDataUrl(datasetId) {
@@ -66,9 +75,11 @@ function isBinSensorDevIds(data) {
     }
     return false;
 }
-function getBinSensorData(id, after_date) {
-    return __awaiter(this, void 0, void 0, function () {
+function getBinSensorData(id_1, after_date_1) {
+    return __awaiter(this, arguments, void 0, function (id, after_date, offset, results) {
         var url, response, json, e_1;
+        if (offset === void 0) { offset = 0; }
+        if (results === void 0) { results = []; }
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -90,7 +101,13 @@ function getBinSensorData(id, after_date) {
                     if (!isBinSensorData(json)) {
                         throw new Error("Unexpected response format: ".concat(json));
                     }
-                    return [2, json.results];
+                    if (json.total_count < offset + 100) {
+                        return [2, __spreadArray(__spreadArray([], results, true), json.results, true)];
+                    }
+                    else {
+                        return [2, getBinSensorData(id, after_date, offset + 100, __spreadArray(__spreadArray([], results, true), json.results, true))];
+                    }
+                    return [3, 5];
                 case 4:
                     e_1 = _a.sent();
                     if (e_1 instanceof Error) {
@@ -170,20 +187,18 @@ var SPACE_CADET = "#2B2D42";
 var LAVENDER_GREY = "#a3a6c9";
 var BACKGROUND = SPACE_CADET;
 var p5BinSketch = new p5(function sketch(sk) {
-    var g = 9.8;
-    var pixelsPerMetre = 3780;
-    var fps = 30;
-    var circleRadius = 5;
-    var refreshInterval = 1000 * 60 * 15;
+    var refreshInterval = 1000 * 60 * 60;
+    var maxPlanets = 5;
     var minSystemSize = 3;
     var maxSystemSize = sk.windowHeight * 0.1;
     var refreshTimestampKey = "sketch-data-refresh-timestamp";
     var binDataKey = "sketch-bin-data";
+    var centrePointKey = "sketch-bin-centre-point";
     var date = new Date();
-    date.setDate(date.getDate() - 1);
+    date.setDate(date.getDate() - 5);
     var dataTimer;
     var entry = 0;
-    var centrePoint = { lat: 0, lon: 0 };
+    var entryCounter = 0;
     var zoom = 500000;
     var rotationAngle = 0;
     var centreX = 0;
@@ -199,13 +214,17 @@ var p5BinSketch = new p5(function sketch(sk) {
         centreX = sk.windowWidth / 2;
         centreY = sk.windowHeight / 2;
         refreshData();
+        sk.background(BACKGROUND);
     };
     sk.draw = function () {
-        sk.background(BACKGROUND);
+        var c = sk.color(BACKGROUND);
+        c.setAlpha(120);
+        sk.background(c);
         sk.push();
         sk.translate(centreX, centreY);
         var data = sk.getItem(binDataKey);
-        if (data) {
+        var centrePoint = sk.getItem(centrePointKey);
+        if (data && centrePoint) {
             var done_1 = true;
             rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
             data.forEach(function (bin, i) {
@@ -218,11 +237,16 @@ var p5BinSketch = new p5(function sketch(sk) {
                     binData = bin.data[bin.data.length - 1];
                     done_1 = done_1 && true;
                 }
-                if (done_1 && sk.millis() % 300 === 0) {
+                if (done_1) {
+                    console.log("done");
+                    entry = 0;
+                }
+                else if (entryCounter > 1000) {
                     entry += 1;
+                    entryCounter = 0;
                 }
                 else {
-                    entry = 0;
+                    entryCounter += sk.deltaTime;
                 }
                 if (binData.lat_long &&
                     "lon" in binData.lat_long &&
@@ -233,7 +257,12 @@ var p5BinSketch = new p5(function sketch(sk) {
                     var systemSize = zoom / 25000;
                     systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
                     systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
-                    drawStarSystem(xx, yy, systemSize, i);
+                    var fill_level = binData.filllevel
+                        ? sk.constrain(binData.filllevel, 0, 100)
+                        : 1;
+                    var planets = sk.ceil((fill_level / 100) * maxPlanets);
+                    var temp = sk.norm(binData.temperature || 16, 0, 30);
+                    drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
                 }
             });
         }
@@ -346,18 +375,20 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.push();
         sk.translate(x, y);
         sk.noStroke();
+        var c;
         if (t > 0.75) {
-            sk.fill(CAROLINA_BLUE);
+            c = sk.color(CAROLINA_BLUE);
         }
         else if (t > 0.5) {
-            sk.fill(PARCHMENT);
+            c = sk.color(PARCHMENT);
         }
         else if (t > 0.25) {
-            sk.fill(CARROT_ORANGE);
+            c = sk.color(CARROT_ORANGE);
         }
         else {
-            sk.fill(CHESTNUT);
+            c = sk.color(CHESTNUT);
         }
+        sk.fill(c);
         sk.circle(0, 0, d);
         sk.pop();
     }
@@ -370,7 +401,10 @@ var p5BinSketch = new p5(function sketch(sk) {
             return {
                 diameter: diameter,
                 radius: diameter / 2,
-                angle: rotationAngle + (rotationAngle * (3 - i)) / p / 2 + r + i * 2,
+                angle: rotationAngle +
+                    (rotationAngle * (maxPlanets - i)) / maxPlanets / 2 +
+                    r +
+                    i * 2,
             };
         });
         var planetSize = s / 2;
@@ -378,23 +412,6 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.noStroke();
         sk.push();
         sk.translate(x, y);
-        sk.push();
-        sk.noFill();
-        sk.stroke(FRENCH_MAUVE);
-        orbits.forEach(function (_a) {
-            var diameter = _a.diameter;
-            sk.circle(0, 0, diameter);
-        });
-        sk.pop();
-        orbits.forEach(function (_a) {
-            var radius = _a.radius, angle = _a.angle;
-            sk.push();
-            sk.rotate(angle);
-            sk.translate(radius, 0);
-            sk.fill(SPACE_CADET);
-            sk.circle(0, 0, blankSpaceSize);
-            sk.pop();
-        });
         orbits.forEach(function (_a, i) {
             var diameter = _a.diameter, radius = _a.radius, angle = _a.angle;
             sk.push();
@@ -419,25 +436,36 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.pop();
     }
     function refreshData() {
-        getBinSensorDataForDate(date)
-            .then(function (data) {
-            if (data) {
-                var filteredData = data.filter(function (d) { return d.data[0].lat_long !== null; });
-                var _a = filteredData.reduce(function (acc, d) {
-                    var dll = d.data[0].lat_long;
-                    return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
-                }, { lat: 0, lon: 0 }), lat = _a.lat, lon = _a.lon;
-                centrePoint = {
-                    lat: lat / filteredData.length,
-                    lon: lon / filteredData.length,
-                };
-                console.log("centrePoint", centrePoint);
-                console.log(filteredData);
-                sk.storeItem(binDataKey, filteredData);
-                sk.storeItem(refreshTimestampKey, Date.now());
-            }
-        })
-            .catch(function (e) { return console.error("Could not refresh data: ", e); });
+        var lastRefresh = sk.getItem(refreshTimestampKey);
+        var data = sk.getItem(binDataKey);
+        var centrePoint = sk.getItem(centrePointKey);
+        console.log("data", data);
+        console.log("lastRefresh", lastRefresh);
+        console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
+        console.log("lastRefresh < Date.now() - refreshInterval", lastRefresh < Date.now() - refreshInterval);
+        console.log(centrePoint, data);
+        if (data === null || centrePoint === null || lastRefresh < Date.now() - refreshInterval) {
+            getBinSensorDataForDate(date)
+                .then(function (data) {
+                if (data) {
+                    var filteredData = data.filter(function (d) { return d.data[0].lat_long !== null; });
+                    var _a = filteredData.reduce(function (acc, d) {
+                        var dll = d.data[0].lat_long;
+                        return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+                    }, { lat: 0, lon: 0 }), lat = _a.lat, lon = _a.lon;
+                    var centre = {
+                        lat: lat / filteredData.length,
+                        lon: lon / filteredData.length,
+                    };
+                    console.log("centrePoint", centre);
+                    console.log(filteredData);
+                    sk.storeItem(centrePointKey, centre);
+                    sk.storeItem(binDataKey, filteredData);
+                    sk.storeItem(refreshTimestampKey, Date.now());
+                }
+            })
+                .catch(function (e) { return console.error("Could not refresh data: ", e); });
+        }
     }
 });
 //# sourceMappingURL=build.js.map

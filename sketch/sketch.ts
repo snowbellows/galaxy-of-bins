@@ -14,29 +14,25 @@ const LAVENDER_GREY = "#a3a6c9";
 const BACKGROUND = SPACE_CADET;
 
 let p5BinSketch = new p5(function sketch(sk: p5) {
-  // gravity
-  const g = 9.8;
-  const pixelsPerMetre = 3780;
-  const fps = 30;
+  const refreshInterval = 1000 * 60 * 60; // 1h
 
-  const circleRadius = 5;
-  const refreshInterval = 1000 * 60 * 15; // 15m
+  const maxPlanets = 5;
 
   const minSystemSize = 3;
   const maxSystemSize = sk.windowHeight * 0.1;
 
   const refreshTimestampKey = "sketch-data-refresh-timestamp";
   const binDataKey = "sketch-bin-data";
+  const centrePointKey = "sketch-bin-centre-point"
 
   const date = new Date();
 
-  date.setDate(date.getDate() - 1);
+  date.setDate(date.getDate() - 5);
 
   let dataTimer;
 
   let entry = 0;
-
-  let centrePoint = { lat: 0, lon: 0 };
+  let entryCounter = 0;
 
   let zoom = 500000;
 
@@ -66,10 +62,13 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // }, 1000 * 60);
 
     //   cV = 0.182;
+    sk.background(BACKGROUND);
   };
 
   sk.draw = () => {
-    sk.background(BACKGROUND);
+    let c = sk.color(BACKGROUND);
+    c.setAlpha(120);
+    sk.background(c);
     sk.push();
     sk.translate(centreX, centreY);
 
@@ -80,7 +79,9 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           data: BinSensorDataEntry[];
         }[];
 
-    if (data) {
+    const centrePoint = sk.getItem(centrePointKey) as null | { lat: number, lon: number }
+        // console.log(centrePoint)
+    if (data && centrePoint) {
       let done = true;
       // Complete 1 full rotation (2 PI rads) every 5 seconds
       rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
@@ -98,11 +99,18 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
         }
 
         // change data entry every 300 millis
-        if (done && sk.millis() % 300 === 0) {
-          entry += 1;
-        } else {
+        if (done) {
+          console.log("done");
           entry = 0;
+        } else if (entryCounter > 1000) {
+          entry += 1;
+          entryCounter = 0;
+        } else {
+          entryCounter += sk.deltaTime;
+          // console.log(entryCounter)
         }
+
+        // console.log("entry:", entry);
 
         if (
           binData.lat_long &&
@@ -122,7 +130,17 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
           systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
 
-          drawStarSystem(xx, yy, systemSize, i);
+          const fill_level = binData.filllevel
+            ? sk.constrain(binData.filllevel, 0, 100)
+            : 1;
+
+          const planets = sk.ceil((fill_level / 100) * maxPlanets);
+
+          // console.log(` sk.ceil( (${fill_level} / 100) * ${maxPlanets}) = ${planets}`)
+
+          const temp = sk.norm(binData.temperature || 16, 0, 30);
+
+          drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
         }
       });
     }
@@ -322,15 +340,18 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.translate(x, y);
     sk.noStroke();
 
+    let c;
     if (t > 0.75) {
-      sk.fill(CAROLINA_BLUE);
+      c = sk.color(CAROLINA_BLUE);
     } else if (t > 0.5) {
-      sk.fill(PARCHMENT);
+      c = sk.color(PARCHMENT);
     } else if (t > 0.25) {
-      sk.fill(CARROT_ORANGE);
+      c = sk.color(CARROT_ORANGE);
     } else {
-      sk.fill(CHESTNUT);
+      c = sk.color(CHESTNUT);
     }
+
+    sk.fill(c);
 
     sk.circle(0, 0, d);
 
@@ -355,13 +376,18 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     p = 3,
     t = 0
   ) {
+    // console.log(`drawStarSystem(x: ${x}, y: ${y}, s: ${s}, r: ${r}, p: ${p}, t: ${t})`)
     const orbits = Array.from(Array(p).keys()).map((i) => {
       const diameter = s * (2 + i) * 1.25;
       return {
         diameter,
         radius: diameter / 2,
         // rotation angle + small percentage variation based on planet + rotation offset of system + rotation offset based on planet
-        angle: rotationAngle + (rotationAngle * (3 - i)) / p / 2 + r + i * 2,
+        angle:
+          rotationAngle +
+          (rotationAngle * (maxPlanets - i)) / maxPlanets / 2 +
+          r +
+          i * 2,
       };
     });
 
@@ -373,25 +399,25 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.translate(x, y);
 
     // rings
-    sk.push(); // 2
-    sk.noFill();
-    sk.stroke(FRENCH_MAUVE);
-    orbits.forEach(({ diameter }) => {
-      sk.circle(0, 0, diameter);
-    });
-    sk.pop(); // 2
+    // sk.push(); // 2
+    // sk.noFill();
+    // sk.stroke(FRENCH_MAUVE);
+    // orbits.forEach(({ diameter }) => {
+    //   sk.circle(0, 0, diameter);
+    // });
+    // sk.pop(); // 2
 
     // blank spaces
 
-    orbits.forEach(({ radius, angle }) => {
-      sk.push(); // 3
-      sk.rotate(angle);
-      sk.translate(radius, 0);
-      // blank space
-      sk.fill(SPACE_CADET);
-      sk.circle(0, 0, blankSpaceSize);
-      sk.pop(); // 3
-    });
+    // orbits.forEach(({ radius, angle }) => {
+    //   sk.push(); // 3
+    //   sk.rotate(angle);
+    //   sk.translate(radius, 0);
+    //   // blank space
+    //   sk.fill(SPACE_CADET);
+    //   sk.circle(0, 0, blankSpaceSize);
+    //   sk.pop(); // 3
+    // });
 
     orbits.forEach(({ diameter, radius, angle }, i) => {
       sk.push();
@@ -418,43 +444,49 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   }
 
   function refreshData() {
-    // const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
-    // const data = sk.getItem(binDataKey);
-    // console.log("data", data);
+    const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
+    const data = sk.getItem(binDataKey);
+    const centrePoint = sk.getItem(centrePointKey);
 
-    // console.log("lastRefresh", lastRefresh);
-    // console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
-    // console.log(
-    //   "lastRefresh < Date.now() - refreshInterval",
-    //   lastRefresh < Date.now() - refreshInterval
-    // );
+    console.log("data", data);
 
-    // if (!data || !lastRefresh || lastRefresh < Date.now() - refreshInterval) {
-    getBinSensorDataForDate(date)
-      .then((data) => {
-        if (data) {
-          const filteredData = data.filter((d) => d.data[0].lat_long !== null);
-          const { lat, lon } = filteredData.reduce(
-            (acc, d) => {
-              const dll = d.data[0].lat_long;
-              return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
-            },
-            { lat: 0, lon: 0 }
-          );
+    console.log("lastRefresh", lastRefresh);
+    console.log("Date.now() - refreshInterval", Date.now() - refreshInterval);
+    console.log(
+      "lastRefresh < Date.now() - refreshInterval",
+      lastRefresh < Date.now() - refreshInterval
+    );
+    console.log(centrePoint, data)
+    if (data === null || centrePoint === null || lastRefresh < Date.now() - refreshInterval) {
+      getBinSensorDataForDate(date)
+        .then((data) => {
+          if (data) {
+            const filteredData = data.filter(
+              (d) => d.data[0].lat_long !== null
+            );
+            const { lat, lon } = filteredData.reduce(
+              (acc, d) => {
+                const dll = d.data[0].lat_long;
+                return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+              },
+              { lat: 0, lon: 0 }
+            );
 
-          centrePoint = {
-            lat: lat / filteredData.length,
-            lon: lon / filteredData.length,
-          };
+            const centre = {
+              lat: lat / filteredData.length,
+              lon: lon / filteredData.length,
+            };
 
-          console.log("centrePoint", centrePoint);
+            console.log("centrePoint", centre);
 
-          console.log(filteredData);
-          sk.storeItem(binDataKey, filteredData);
-          sk.storeItem(refreshTimestampKey, Date.now());
-        }
-      })
-      .catch((e) => console.error("Could not refresh data: ", e));
+            console.log(filteredData);
+
+            sk.storeItem(centrePointKey, centre)
+            sk.storeItem(binDataKey, filteredData);
+            sk.storeItem(refreshTimestampKey, Date.now());
+          }
+        })
+        .catch((e) => console.error("Could not refresh data: ", e));
+    }
   }
-  // }
 });
