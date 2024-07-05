@@ -16,7 +16,7 @@ const BACKGROUND = SPACE_CADET;
 let p5BinSketch = new p5(function sketch(sk: p5) {
   const refreshInterval = 1000 * 60 * 60; // 1h
 
-  const maxPlanets = 3;
+  const maxPlanets = 4;
 
   const minSystemSize = 3;
   const maxSystemSize = sk.windowHeight * 0.1;
