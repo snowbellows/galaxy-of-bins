@@ -35,7 +35,10 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   let entry = 0;
   let entryCounter = 0;
 
+  let startZoom = 1000000;
   let zoom = 1000000;
+  const minZoom = 200000;
+  const maxZoom = 2400000;
 
   let textY = 0;
   let textPage = 0;
@@ -49,6 +52,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
   let touchDrag = [0, 0];
 
+  let bgImage: undefined | p5.Image;
+
   function differenceLatLon(
     ll0: { lat: number; lon: number },
     ll1: { lat: number; lon: number }
@@ -56,28 +61,102 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
   }
 
+  sk.preload = () => {
+    refreshData();
+    bgImage = sk.loadImage("/data/argyle-square.svg");
+  };
+
   sk.setup = () => {
     console.log("🚀 - Setup initialized - P5 is running");
 
     sk.createCanvas(sk.windowWidth, sk.windowHeight);
     sk.rectMode(sk.CENTER);
+    sk.imageMode(sk.CENTER);
     sk.frameRate(30);
 
     centreX = sk.windowWidth / 2;
     centreY = sk.windowHeight / 2;
-    refreshData();
     // dataTimer = setInterval(() => {
     //   refreshData();
     // }, 1000 * 60);
 
     //   cV = 0.182;
-    sk.background(BACKGROUND);
+
+    const data = sk.getItem(binDataKey) as
+      | null
+      | {
+          id: string;
+          data: BinSensorDataEntry[];
+        }[];
+    if (data) {
+      const boundingBox = data.reduce(
+        (acc, d) => {
+          const min = acc[0];
+          const max = acc[1];
+          const dLat = d.data[0].lat_long.lat;
+          const dLon = d.data[0].lat_long.lon;
+          if (
+            max.lat === 0 &&
+            max.lon === 0 &&
+            min.lat === 0 &&
+            min.lon === 0
+          ) {
+            return [
+              {
+                lat: dLat,
+                lon: dLon,
+              },
+              {
+                lat: dLat,
+                lon: dLon,
+              },
+            ];
+          } else {
+            const newMinLat = dLat < min.lat ? dLat : min.lat;
+            const newMinLon = dLon < min.lon ? dLon : min.lon;
+            const newMaxLat = dLat > max.lat ? dLat : max.lat;
+            const newMaxLon = dLon > max.lon ? dLon : max.lon;
+            return [
+              { lat: newMinLat, lon: newMinLon },
+              { lat: newMaxLat, lon: newMaxLon },
+            ];
+          }
+        },
+        [
+          { lat: 0, lon: 0 },
+          { lat: 0, lon: 0 },
+        ]
+      );
+
+      console.log(boundingBox);
+    }
   };
 
   sk.draw = () => {
+    if (bgImage) {
+      sk.push();
+      sk.translate(centreX, centreY);
+      const imageZoomPC = 250000;
+      sk.image(
+        bgImage,
+        0,
+        0,
+        (bgImage.width * zoom) / imageZoomPC,
+        (bgImage.height * zoom) / imageZoomPC
+      );
+      sk.pop();
+    }
+
     let c = sk.color(BACKGROUND);
-    // c.setAlpha(120);
-    sk.background(c);
+    c.setAlpha(245);
+    sk.fill(c);
+
+    sk.rect(
+      sk.windowWidth / 2,
+      sk.windowHeight / 2,
+      sk.windowWidth,
+      sk.windowHeight
+    );
 
     const data = sk.getItem(binDataKey) as
       | null
@@ -86,32 +165,52 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           data: BinSensorDataEntry[];
         }[];
 
-    const text = sk.getItem(textKey) as string[];
-    if (text) {
-      sk.push();
-      sk.rectMode("corner")
-      textY += sk.deltaTime / 100;
-      if (textY > 1 * textHeight) {
-        textY = 0
-        textPage +=1
-      }
-      if (textPage >= text.length) {
-        textPage = 0
-      }
-      let c = sk.color(PISTACHIO);
-      c.setAlpha(30);
-      sk.fill(c);
-      // sk.stroke(AMARANTH_PINK)
-      sk.textFont("Courier New");
-      sk.textSize(textHeight);
+    // const text = sk.getItem(textKey) as string[];
+    // if (text) {
+    //   sk.push();
+    //   sk.rectMode("corner");
+    //   textY += sk.deltaTime / 100;
+    //   if (textY > 1 * textHeight) {
+    //     textY = 0;
+    //     textPage += 1;
+    //   }
+    //   if (textPage >= text.length) {
+    //     textPage = 0;
+    //   }
+    //   let c = sk.color(PISTACHIO);
+    //   c.setAlpha(30);
+    //   sk.fill(c);
+    //   // sk.stroke(AMARANTH_PINK)
+    //   sk.textFont("Courier New");
+    //   sk.textSize(textHeight);
 
-      const textRows = sk.ceil(sk.windowHeight / textHeight) + 4
+    //   const textRows = sk.ceil(sk.windowHeight / textHeight) + 4;
 
-      text.slice(textPage, textPage + textRows).forEach((t, i) => {
-        sk.text(t, 0, textY + textRows * textHeight - ( (i + 3) * textHeight), sk.windowWidth, textHeight);
-      });
-      sk.pop();
-    }
+    //   text.slice(textPage, textPage + textRows).forEach((t, i) => {
+    //     sk.text(
+    //       t,
+    //       0,
+    //       textY + textRows * textHeight - (i + 3) * textHeight,
+    //       sk.windowWidth,
+    //       textHeight
+    //     );
+    //   });
+    //   sk.pop();
+    // }
+
+    let tc = sk.color(PISTACHIO);
+    tc.setAlpha(160);
+    sk.fill(tc);
+    // sk.stroke(AMARANTH_PINK)
+    sk.textFont("Courier New");
+    sk.textSize(textHeight);
+
+    // need to add link, maybe can just use html?
+    sk.text(
+      "Map image from OpenStreetMap",
+      sk.windowWidth - (300 - textHeight),
+      sk.windowHeight - textHeight,
+    );
 
     const centrePoint = sk.getItem(centrePointKey) as null | {
       lat: number;
@@ -194,21 +293,21 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   sk.mouseWheel = (event: WheelEvent) => {
     const zoomScrollAmount = 10000;
 
-    if (event.deltaY > 0) {
+    if (event.deltaY > 0 && zoom < maxZoom) {
       zoom += zoomScrollAmount;
-    } else {
-      if (zoom - zoomScrollAmount > 0) {
-        zoom -= zoomScrollAmount;
-      }
+    } else if (zoom > minZoom && zoom - zoomScrollAmount > 0) {
+      zoom -= zoomScrollAmount;
     }
-
     return false;
   };
 
   sk.mouseDragged = (event: MouseEvent) => {
     if (event.movementX && event.movementY) {
-      centreX += event.movementX;
-      centreY += event.movementY;
+      const newCentreX = centreX + event.movementX;
+      const newCentreY = centreY + event.movementY;
+
+      if (newCentreX > 0 && newCentreX < sk.windowWidth) centreX = newCentreX;
+      if (newCentreY > 0 && newCentreY < sk.windowHeight) centreY = newCentreY;
     }
     return false;
   };
@@ -240,9 +339,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       //@ts-ignore
       const scale: number = event.scale;
 
-      const direction = scale >= 1 ? 1 : -1;
-
-      zoom += zoomScrollAmount * scale * direction;
+      if (scale && scale >= 1 && zoom < maxZoom) {
+        zoom += zoomScrollAmount * scale;
+      } else if (scale && zoom > minZoom && zoom - zoomScrollAmount > 0) {
+        zoom -= zoomScrollAmount * scale;
+      }
     }
 
     return false;
@@ -333,7 +434,9 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // apple flesh
     sk.fill(PEACH);
     sk.rect(0, 0, w, rH);
-    sk.fill(BACKGROUND);
+    let c = sk.color(BACKGROUND);
+    c.setAlpha(160);
+    sk.fill(c);
     sk.ellipse(-(w / 2), 0, w / 2, h);
     sk.ellipse(w / 2, 0, w / 2, h);
 
@@ -485,7 +588,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.noFill();
     let c = sk.color(FRENCH_MAUVE);
     c.setAlpha(100);
-    sk.strokeWeight(2)
+    sk.strokeWeight(2);
     sk.stroke(c);
     orbits.forEach(({ diameter }) => {
       sk.circle(0, 0, diameter);
@@ -499,7 +602,9 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       sk.rotate(angle);
       sk.translate(radius, 0);
       // blank space
-      sk.fill(SPACE_CADET);
+      let c = sk.color(BACKGROUND);
+      c.setAlpha(60);
+      sk.fill(c);
       sk.circle(0, 0, blankSpaceSize);
       sk.pop(); // 3
     });
@@ -562,6 +667,8 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
               },
               { lat: 0, lon: 0 }
             );
+
+            filteredData.forEach((d) => console.log(d.data[0].lat_long));
 
             const centre = {
               lat: lat / filteredData.length,

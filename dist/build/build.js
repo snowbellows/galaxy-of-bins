@@ -200,7 +200,10 @@ var p5BinSketch = new p5(function sketch(sk) {
     var dataTimer;
     var entry = 0;
     var entryCounter = 0;
+    var startZoom = 1000000;
     var zoom = 1000000;
+    var minZoom = 200000;
+    var maxZoom = 2400000;
     var textY = 0;
     var textPage = 0;
     var textHeight = 16;
@@ -209,46 +212,80 @@ var p5BinSketch = new p5(function sketch(sk) {
     var centreY = 0;
     var reverse = false;
     var touchDrag = [0, 0];
+    var bgImage;
     function differenceLatLon(ll0, ll1) {
         return { lat: ll0.lat - ll1.lat, lon: ll0.lon - ll1.lon };
     }
+    sk.preload = function () {
+        refreshData();
+        bgImage = sk.loadImage("/data/argyle-square.svg");
+    };
     sk.setup = function () {
         console.log("🚀 - Setup initialized - P5 is running");
         sk.createCanvas(sk.windowWidth, sk.windowHeight);
         sk.rectMode(sk.CENTER);
+        sk.imageMode(sk.CENTER);
         sk.frameRate(30);
         centreX = sk.windowWidth / 2;
         centreY = sk.windowHeight / 2;
-        refreshData();
-        sk.background(BACKGROUND);
+        var data = sk.getItem(binDataKey);
+        if (data) {
+            var boundingBox = data.reduce(function (acc, d) {
+                var min = acc[0];
+                var max = acc[1];
+                var dLat = d.data[0].lat_long.lat;
+                var dLon = d.data[0].lat_long.lon;
+                if (max.lat === 0 &&
+                    max.lon === 0 &&
+                    min.lat === 0 &&
+                    min.lon === 0) {
+                    return [
+                        {
+                            lat: dLat,
+                            lon: dLon,
+                        },
+                        {
+                            lat: dLat,
+                            lon: dLon,
+                        },
+                    ];
+                }
+                else {
+                    var newMinLat = dLat < min.lat ? dLat : min.lat;
+                    var newMinLon = dLon < min.lon ? dLon : min.lon;
+                    var newMaxLat = dLat > max.lat ? dLat : max.lat;
+                    var newMaxLon = dLon > max.lon ? dLon : max.lon;
+                    return [
+                        { lat: newMinLat, lon: newMinLon },
+                        { lat: newMaxLat, lon: newMaxLon },
+                    ];
+                }
+            }, [
+                { lat: 0, lon: 0 },
+                { lat: 0, lon: 0 },
+            ]);
+            console.log(boundingBox);
+        }
     };
     sk.draw = function () {
-        var c = sk.color(BACKGROUND);
-        sk.background(c);
-        var data = sk.getItem(binDataKey);
-        var text = sk.getItem(textKey);
-        if (text) {
+        if (bgImage) {
             sk.push();
-            sk.rectMode("corner");
-            textY += sk.deltaTime / 100;
-            if (textY > 1 * textHeight) {
-                textY = 0;
-                textPage += 1;
-            }
-            if (textPage >= text.length) {
-                textPage = 0;
-            }
-            var c_1 = sk.color(PISTACHIO);
-            c_1.setAlpha(30);
-            sk.fill(c_1);
-            sk.textFont("Courier New");
-            sk.textSize(textHeight);
-            var textRows_1 = sk.ceil(sk.windowHeight / textHeight) + 4;
-            text.slice(textPage, textPage + textRows_1).forEach(function (t, i) {
-                sk.text(t, 0, textY + textRows_1 * textHeight - ((i + 3) * textHeight), sk.windowWidth, textHeight);
-            });
+            sk.translate(centreX, centreY);
+            var imageZoomPC = 250000;
+            sk.image(bgImage, 0, 0, (bgImage.width * zoom) / imageZoomPC, (bgImage.height * zoom) / imageZoomPC);
             sk.pop();
         }
+        var c = sk.color(BACKGROUND);
+        c.setAlpha(245);
+        sk.fill(c);
+        sk.rect(sk.windowWidth / 2, sk.windowHeight / 2, sk.windowWidth, sk.windowHeight);
+        var data = sk.getItem(binDataKey);
+        var tc = sk.color(PISTACHIO);
+        tc.setAlpha(160);
+        sk.fill(tc);
+        sk.textFont("Courier New");
+        sk.textSize(textHeight);
+        sk.text("Map image from OpenStreetMap", sk.windowWidth - (300 - textHeight), sk.windowHeight - textHeight);
         var centrePoint = sk.getItem(centrePointKey);
         sk.push();
         sk.translate(centreX, centreY);
@@ -302,20 +339,22 @@ var p5BinSketch = new p5(function sketch(sk) {
     };
     sk.mouseWheel = function (event) {
         var zoomScrollAmount = 10000;
-        if (event.deltaY > 0) {
+        if (event.deltaY > 0 && zoom < maxZoom) {
             zoom += zoomScrollAmount;
         }
-        else {
-            if (zoom - zoomScrollAmount > 0) {
-                zoom -= zoomScrollAmount;
-            }
+        else if (zoom > minZoom && zoom - zoomScrollAmount > 0) {
+            zoom -= zoomScrollAmount;
         }
         return false;
     };
     sk.mouseDragged = function (event) {
         if (event.movementX && event.movementY) {
-            centreX += event.movementX;
-            centreY += event.movementY;
+            var newCentreX = centreX + event.movementX;
+            var newCentreY = centreY + event.movementY;
+            if (newCentreX > 0 && newCentreX < sk.windowWidth)
+                centreX = newCentreX;
+            if (newCentreY > 0 && newCentreY < sk.windowHeight)
+                centreY = newCentreY;
         }
         return false;
     };
@@ -339,8 +378,12 @@ var p5BinSketch = new p5(function sketch(sk) {
         if (event.touches.length === 2) {
             var zoomScrollAmount = 10000;
             var scale = event.scale;
-            var direction = scale >= 1 ? 1 : -1;
-            zoom += zoomScrollAmount * scale * direction;
+            if (scale && scale >= 1 && zoom < maxZoom) {
+                zoom += zoomScrollAmount * scale;
+            }
+            else if (scale && zoom > minZoom && zoom - zoomScrollAmount > 0) {
+                zoom -= zoomScrollAmount * scale;
+            }
         }
         return false;
     };
@@ -393,7 +436,9 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.rect(0, rH / 2, w, seH, s / 10);
         sk.fill(PEACH);
         sk.rect(0, 0, w, rH);
-        sk.fill(BACKGROUND);
+        var c = sk.color(BACKGROUND);
+        c.setAlpha(160);
+        sk.fill(c);
         sk.ellipse(-(w / 2), 0, w / 2, h);
         sk.ellipse(w / 2, 0, w / 2, h);
         sk.fill(PISTACHIO);
@@ -489,7 +534,9 @@ var p5BinSketch = new p5(function sketch(sk) {
             sk.push();
             sk.rotate(angle);
             sk.translate(radius, 0);
-            sk.fill(SPACE_CADET);
+            var c = sk.color(BACKGROUND);
+            c.setAlpha(60);
+            sk.fill(c);
             sk.circle(0, 0, blankSpaceSize);
             sk.pop();
         });
@@ -533,6 +580,7 @@ var p5BinSketch = new p5(function sketch(sk) {
                         var dll = d.data[0].lat_long;
                         return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
                     }, { lat: 0, lon: 0 }), lat = _a.lat, lon = _a.lon;
+                    filteredData.forEach(function (d) { return console.log(d.data[0].lat_long); });
                     var centre = {
                         lat: lat / filteredData.length,
                         lon: lon / filteredData.length,
