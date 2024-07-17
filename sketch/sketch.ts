@@ -24,7 +24,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   const refreshTimestampKey = "sketch-data-refresh-timestamp";
   const binDataKey = "sketch-bin-data";
   const centrePointKey = "sketch-bin-centre-point";
-  const textKey = "sketch-bin-text";
+  // const textKey = "sketch-bin-text";
 
   const date = new Date();
 
@@ -54,6 +54,16 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
   let bgImage: undefined | p5.Image;
 
+  let highlightedBin = 0;
+
+  let zoomTransitionTicker = 0;
+  let zoomTransition: undefined | ReturnType<typeof createTransition<number>>;
+
+  let moveTransitionTicker = 0;
+  let moveTransition:
+    | undefined
+    | ReturnType<typeof createTransition<[number, number]>>;
+
   function differenceLatLon(
     ll0: { lat: number; lon: number },
     ll1: { lat: number; lon: number }
@@ -73,9 +83,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.rectMode(sk.CENTER);
     sk.imageMode(sk.CENTER);
     sk.frameRate(30);
-
-    centreX = sk.windowWidth / 2;
-    centreY = sk.windowHeight / 2;
     // dataTimer = setInterval(() => {
     //   refreshData();
     // }, 1000 * 60);
@@ -86,53 +93,61 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       | null
       | {
           id: string;
-          data: BinSensorDataEntry[];
+          data: BinSensorDataEntry & {x: number, y: number}[];
         }[];
     if (data) {
-      const boundingBox = data.reduce(
-        (acc, d) => {
-          const min = acc[0];
-          const max = acc[1];
-          const dLat = d.data[0].lat_long.lat;
-          const dLon = d.data[0].lat_long.lon;
-          if (
-            max.lat === 0 &&
-            max.lon === 0 &&
-            min.lat === 0 &&
-            min.lon === 0
-          ) {
-            return [
-              {
-                lat: dLat,
-                lon: dLon,
-              },
-              {
-                lat: dLat,
-                lon: dLon,
-              },
-            ];
-          } else {
-            const newMinLat = dLat < min.lat ? dLat : min.lat;
-            const newMinLon = dLon < min.lon ? dLon : min.lon;
-            const newMaxLat = dLat > max.lat ? dLat : max.lat;
-            const newMaxLon = dLon > max.lon ? dLon : max.lon;
-            return [
-              { lat: newMinLat, lon: newMinLon },
-              { lat: newMaxLat, lon: newMaxLon },
-            ];
-          }
-        },
-        [
-          { lat: 0, lon: 0 },
-          { lat: 0, lon: 0 },
-        ]
-      );
 
-      console.log(boundingBox);
+    centreX = data[highlightedBin].data[0].x * zoom;
+    centreY = data[highlightedBin].data[0].y * zoom;
+
+      // const boundingBox = data.reduce(
+      //   (acc, d) => {
+      //     const min = acc[0];
+      //     const max = acc[1];
+      //     const dLat = d.data[0].lat_long.lat;
+      //     const dLon = d.data[0].lat_long.lon;
+      //     if (
+      //       max.lat === 0 &&
+      //       max.lon === 0 &&
+      //       min.lat === 0 &&
+      //       min.lon === 0
+      //     ) {
+      //       return [
+      //         {
+      //           lat: dLat,
+      //           lon: dLon,
+      //         },
+      //         {
+      //           lat: dLat,
+      //           lon: dLon,
+      //         },
+      //       ];
+      //     } else {
+      //       const newMinLat = dLat < min.lat ? dLat : min.lat;
+      //       const newMinLon = dLon < min.lon ? dLon : min.lon;
+      //       const newMaxLat = dLat > max.lat ? dLat : max.lat;
+      //       const newMaxLon = dLon > max.lon ? dLon : max.lon;
+      //       return [
+      //         { lat: newMinLat, lon: newMinLon },
+      //         { lat: newMaxLat, lon: newMaxLon },
+      //       ];
+      //     }
+      //   },
+      //   [
+      //     { lat: 0, lon: 0 },
+      //     { lat: 0, lon: 0 },
+      //   ]
+      // );
+      // console.log(boundingBox);
     }
   };
 
   sk.draw = () => {
+    zoomCycle();
+    
+
+    const startCenter = [centreX, centreY];
+
     if (bgImage) {
       sk.push();
       sk.translate(centreX, centreY);
@@ -162,7 +177,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       | null
       | {
           id: string;
-          data: BinSensorDataEntry[];
+          data: (BinSensorDataEntry & {x: number, y: number})[];
         }[];
 
     // const text = sk.getItem(textKey) as string[];
@@ -209,7 +224,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.text(
       "Map image from OpenStreetMap",
       sk.windowWidth - (300 - textHeight),
-      sk.windowHeight - textHeight,
+      sk.windowHeight - textHeight
     );
 
     const centrePoint = sk.getItem(centrePointKey) as null | {
@@ -218,9 +233,12 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     };
 
     sk.push();
-    sk.translate(centreX, centreY);
     // console.log(centrePoint)
     if (data && centrePoint) {
+      centreX = data[highlightedBin].data[0].x * zoom;
+      centreY = data[highlightedBin].data[0].y * zoom;
+      sk.translate(centreX, centreY);
+
       let done = true;
       // Complete 1 full rotation (2 PI rads) every 5 seconds
       rotationAngle += ((2 * sk.PI) / 5) * (sk.deltaTime / 1000);
@@ -254,36 +272,25 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
         // console.log("entry:", entry);
 
-        if (
-          binData.lat_long &&
-          "lon" in binData.lat_long &&
-          "lat" in binData.lat_long
-        ) {
-          const { lon: x, lat: y } = differenceLatLon(
-            centrePoint,
-            binData.lat_long
-          );
+        const xx = binData.x * zoom;
+        const yy = binData.y * zoom;
+        // console.log(xx, yy)
+        let systemSize = zoom / 30000;
 
-          const xx = x * zoom;
-          const yy = y * zoom;
-          // console.log(xx, yy)
-          let systemSize = zoom / 30000;
+        systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
+        systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
 
-          systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
-          systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
+        const fill_level = binData.filllevel
+          ? sk.constrain(binData.filllevel, 0, 100)
+          : 1;
 
-          const fill_level = binData.filllevel
-            ? sk.constrain(binData.filllevel, 0, 100)
-            : 1;
+        const planets = sk.ceil((fill_level / 100) * maxPlanets);
 
-          const planets = sk.ceil((fill_level / 100) * maxPlanets);
+        // console.log(` sk.ceil( (${fill_level} / 100) * ${maxPlanets}) = ${planets}`)
 
-          // console.log(` sk.ceil( (${fill_level} / 100) * ${maxPlanets}) = ${planets}`)
+        const temp = sk.norm(binData.temperature || 16, 0, 30);
 
-          const temp = sk.norm(binData.temperature || 16, 0, 30);
-
-          drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
-        }
+        drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
       });
     }
     sk.pop();
@@ -637,7 +644,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
     const data = sk.getItem(binDataKey);
     const centrePoint = sk.getItem(centrePointKey);
-    const text = sk.getItem(textKey);
+    // const text = sk.getItem(textKey);
 
     // console.log("data", data);
 
@@ -651,7 +658,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     if (
       data === null ||
       centrePoint === null ||
-      text === null ||
+      // text === null ||
       lastRefresh < Date.now() - refreshInterval
     ) {
       getBinSensorDataForDate(date)
@@ -668,28 +675,103 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
               { lat: 0, lon: 0 }
             );
 
-            filteredData.forEach((d) => console.log(d.data[0].lat_long));
 
             const centre = {
               lat: lat / filteredData.length,
               lon: lon / filteredData.length,
             };
 
-            const text = data
-              .flatMap((b) => b.data)
-              .map((d) => JSON.stringify(d));
+            // const text = data
+            //   .flatMap((b) => b.data)
+            //   .map((d) => JSON.stringify(d));
+
+            const normalisedData = filteredData.map((b) => {
+              const newData = b.data.map((d) => {
+                  const { lon: x, lat: y } = differenceLatLon(
+                    centre,
+                    d.lat_long
+                  );
+
+                  return { x, y, ...d };
+              });
+
+              return {
+                id: b.id,
+                data: newData,
+              };
+            });
+
+            normalisedData.forEach((d) => console.log(d.data[0].x,d.data[0].y ));
 
             // console.log("centrePoint", centre);
 
             // console.log(filteredData);
 
             sk.storeItem(centrePointKey, centre);
-            sk.storeItem(binDataKey, filteredData);
+            sk.storeItem(binDataKey, normalisedData);
             sk.storeItem(refreshTimestampKey, Date.now());
-            sk.storeItem(textKey, text);
+            // sk.storeItem(textKey, text);
           }
         })
         .catch((e) => console.error("Could not refresh data: ", e));
+    }
+  }
+
+  function createTransition<
+    T
+  >(name: string, ms: number, startValue: T, endValue: T, transition: (s: T, e: T, amount: number) => T) {
+    const transitionStart = Date.now();
+    console.log(name, "started: ", transitionStart);
+    return () => {
+      const now = Date.now();
+      if (now > transitionStart + ms) {
+        return endValue;
+      } else {
+        let amount = (now - transitionStart) / ms;
+        if (amount < 0) {
+          amount = 0;
+        }
+        if (amount > 1) {
+          amount = 1;
+        }
+        return transition(startValue, endValue, amount);
+      }
+    };
+  }
+
+  function zoomCycle() {
+    const zoomStep1 = startZoom;
+    const zoomStep2 = startZoom * 2;
+    if (zoom === zoomStep1 && zoomTransitionTicker === 0) {
+      zoomTransition = createTransition(
+        "Zoom In",
+        2000,
+        zoomStep1,
+        zoomStep2,
+        (start, end, amount) => {
+          return start + (end - start) * amount;
+        }
+      );
+    } else if (zoom === zoomStep2 && zoomTransitionTicker === 0) {
+      zoomTransition = createTransition(
+        "Zoom Out",
+        2000,
+        zoomStep2,
+        zoomStep1,
+        (start, end, amount) => {
+          return start + (end - start) * amount;
+        }
+      );
+    }
+
+    if (zoomTransition) {
+      zoom = zoomTransition();
+    }
+
+    zoomTransitionTicker += sk.deltaTime;
+
+    if (zoomTransitionTicker > 1000 * 5) {
+      zoomTransitionTicker = 0;
     }
   }
 });
