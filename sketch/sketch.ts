@@ -14,7 +14,7 @@ const LAVENDER_GREY = "#a3a6c9";
 const BACKGROUND = SPACE_CADET;
 
 let p5BinSketch = new p5(function sketch(sk: p5) {
-  const refreshInterval = 1000 * 60 * 60; // 1h
+  const refreshInterval = 1000 * 60 * 10; // 10m
 
   const maxPlanets = 4;
 
@@ -26,11 +26,19 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   const centrePointKey = "sketch-bin-centre-point";
   const textKey = "sketch-bin-text";
 
-  const date = new Date();
+  const afterDate = new Date();
 
-  date.setDate(date.getDate() - 5);
+  afterDate.setFullYear(afterDate.getFullYear() - 1);
+
+  afterDate.setDate(afterDate.getDate() - 14);
+
+  const beforeDate = new Date();
+
+  beforeDate.setFullYear(beforeDate.getFullYear() - 1);
 
   let dataTimer;
+
+  let doneIds: string[] = [];
 
   let entry = 0;
   let entryCounter = 0;
@@ -236,20 +244,12 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           done = done && false;
           binData = bin.data[entry];
         } else {
+          if (!doneIds.includes(bin.id)) {
+            doneIds.push(bin.id);
+            console.log(bin.id, "done at", entry);
+          }
           binData = bin.data[bin.data.length - 1];
           done = done && true;
-        }
-
-        // change data entry every 300 millis
-        if (done) {
-          reverse = !reverse;
-          entry += 1 * (reverse ? -1 : 1);
-        } else if (entryCounter > 1000) {
-          entry += 1 * (reverse ? -1 : 1);
-          entryCounter = 0;
-        } else {
-          entryCounter += sk.deltaTime;
-          // console.log(entryCounter)
         }
 
         // console.log("entry:", entry);
@@ -273,10 +273,10 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
 
           const fill_level = binData.filllevel
-            ? sk.constrain(binData.filllevel, 0, 100)
+            ? sk.constrain(binData.filllevel, 1, 100)
             : 1;
 
-          const planets = sk.ceil((fill_level / 100) * maxPlanets);
+          const planets = sk.round((fill_level / 100) * maxPlanets);
 
           // console.log(` sk.ceil( (${fill_level} / 100) * ${maxPlanets}) = ${planets}`)
 
@@ -284,13 +284,50 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
           drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
 
-          let tc = sk.color(PISTACHIO);
-          tc.setAlpha(160);
-          sk.fill(tc);
-          sk.textFont("Courier New");
-          sk.text(binData.time, xx + systemSize + 50, yy + systemSize + 50);
+          // let tc = sk.color(PISTACHIO);
+          // tc.setAlpha(160);
+          // sk.fill(tc);
+          // sk.textFont("Courier New");
+          // sk.textSize(textHeight * 0.8);
+          // sk.text(
+          //   binData.dev_id,
+          //   xx + systemSize + 50,
+          //   yy + systemSize + 50 - textHeight * 2
+          // );
+          // sk.text(
+          //   binData.sensor_name,
+          //   xx + systemSize + 50,
+          //   yy + systemSize + 50 - textHeight
+          // );
+
+          // sk.text(binData.time, xx + systemSize + 50, yy + systemSize + 50);
+          // sk.text(
+          //   `fill_level: ${binData.fill_level}`,
+          //   xx + systemSize + 50,
+          //   yy + systemSize + 50 + textHeight
+          // );
+          // sk.text(
+          //   `filllevel: ${binData.filllevel}`,
+          //   xx + systemSize + 50,
+          //   yy + systemSize + 50 + textHeight * 2
+          // );
         }
       });
+
+      // change data entry every 300 millis
+      if (done) {
+        // reverse = !reverse;
+        // entry += 1 * (reverse ? -1 : 1);
+        console.log("done at ", entry);
+        entry = 0;
+      } else if (entryCounter > 100) {
+        // entry += 1 * (reverse ? -1 : 1);
+        entry += 1;
+        entryCounter = 0;
+      } else {
+        entryCounter += sk.deltaTime;
+        // console.log(entryCounter)
+      }
     }
     sk.pop();
   };
@@ -645,7 +682,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     const lastRefresh = sk.getItem(refreshTimestampKey) as null | number;
     const data = sk.getItem(binDataKey);
     const centrePoint = sk.getItem(centrePointKey);
-    const text = sk.getItem(textKey);
 
     // console.log("data", data);
 
@@ -659,12 +695,58 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     if (
       data === null ||
       centrePoint === null ||
-      text === null ||
       lastRefresh < Date.now() - refreshInterval
     ) {
-      getBinSensorDataForDate(date)
+      // getBinSensorDataBetweenDates(afterDate, beforeDate)
+      getBinSensorDataForDate(afterDate)
         .then((data) => {
           if (data) {
+            // data.forEach((d) => {
+            //   console.log(d.id, ": ", d.data.length);
+
+            //   const minMax = d.data.reduce(
+            //     (acc, b) => {
+            //       let newVal = acc;
+            //       if (b.fill_level) {
+            //         if (
+            //           acc.fill_level.max === 0 ||
+            //           acc.fill_level.max < b.fill_level
+            //         ) {
+            //           newVal.fill_level.max = b.fill_level;
+            //         }
+            //         if (
+            //           acc.fill_level.min === 0 ||
+            //           acc.fill_level.min > b.fill_level
+            //         ) {
+            //           newVal.fill_level.min = b.fill_level;
+            //         }
+            //       }
+            //       if (b.filllevel) {
+            //         if (
+            //           acc.filllevel.max === 0 ||
+            //           acc.filllevel.max < b.filllevel
+            //         ) {
+            //           newVal.filllevel.max = b.filllevel;
+            //         }
+            //         if (
+            //           acc.filllevel.min === 0 ||
+            //           acc.filllevel.min > b.filllevel
+            //         ) {
+            //           newVal.filllevel.min = b.filllevel;
+            //         }
+            //       }
+
+            //       return newVal;
+            //     },
+            //     {
+            //       fill_level: { max: 0, min: 0 },
+            //       filllevel: { max: 0, min: 0 },
+            //     }
+            //   );
+
+            //   console.log(d.id, ": ", d.data.length, ",", minMax);
+            // });
+
             const filteredData = data.filter(
               (d) => d.data[0].lat_long !== null
             );
@@ -683,18 +765,9 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
               lon: lon / filteredData.length,
             };
 
-            const text = data
-              .flatMap((b) => b.data)
-              .map((d) => JSON.stringify(d));
-
-            // console.log("centrePoint", centre);
-
-            // console.log(filteredData);
-
             sk.storeItem(centrePointKey, centre);
             sk.storeItem(binDataKey, filteredData);
             sk.storeItem(refreshTimestampKey, Date.now());
-            sk.storeItem(textKey, text);
           }
         })
         .catch((e) => console.error("Could not refresh data: ", e));

@@ -1,3 +1,14 @@
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -75,45 +86,57 @@ function isBinSensorDevIds(data) {
     }
     return false;
 }
-function getBinSensorData(id_1, after_date_1) {
-    return __awaiter(this, arguments, void 0, function (id, after_date, offset, results) {
-        var url, response, json, e_1;
-        if (offset === void 0) { offset = 0; }
-        if (results === void 0) { results = []; }
+function getBinSensorData(ids, after_date, before_date) {
+    return __awaiter(this, void 0, void 0, function () {
+        var limit_1, idString, where_1, response, json, total, first, numApiCalls, results, e_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    url = melbDataUrl(binSensorDatasetId);
-                    url.search = new URLSearchParams({
-                        where: "".concat(id ? "dev_id = \"".concat(id, "\"") : "").concat(id && after_date ? " and " : "").concat(after_date ? "time >= date'".concat(after_date.toISOString(), "'") : ""),
-                        order_by: "time",
-                        limit: "100",
-                    }).toString();
-                    return [4, fetch(url)];
+                    _a.trys.push([0, 4, , 5]);
+                    limit_1 = 100;
+                    idString = ids && ids.map(function (id) { return "\"".concat(id, "\""); }).join(", ");
+                    where_1 = "".concat(idString ? "dev_id in (".concat(idString, ")") : "").concat(idString && (after_date || before_date) ? " and " : "").concat(after_date ? "time >= date'".concat(after_date.toISOString(), "'") : "").concat(after_date && before_date ? " and " : "").concat(before_date ? "time <= date'".concat(before_date.toISOString(), "'") : "");
+                    return [4, apiCall(binSensorDatasetId, {
+                            where: where_1,
+                            orderBy: "time",
+                            limit: limit_1,
+                            offset: 0,
+                        })];
                 case 1:
                     response = _a.sent();
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 4, , 5]);
                     return [4, response.json()];
-                case 3:
+                case 2:
                     json = _a.sent();
                     if (!isBinSensorData(json)) {
-                        throw new Error("Unexpected response format: ".concat(json));
+                        throw new Error("Unexpected response format: ".concat(JSON.stringify(json)));
                     }
-                    if (json.total_count < offset + 100) {
-                        return [2, __spreadArray(__spreadArray([], results, true), json.results, true)];
-                    }
-                    else {
-                        return [2, getBinSensorData(id, after_date, offset + 100, __spreadArray(__spreadArray([], results, true), json.results, true))];
-                    }
-                    return [3, 5];
+                    total = json.total_count;
+                    first = json.results;
+                    numApiCalls = Math.floor(total / limit_1);
+                    return [4, Promise.all(Array.from(new Array(numApiCalls).keys()).map(function (i) {
+                            return apiCall(binSensorDatasetId, {
+                                where: where_1,
+                                orderBy: "time",
+                                limit: limit_1,
+                                offset: limit_1 * (i + 1),
+                            }).then(function (r) {
+                                return r.json().then(function (j) {
+                                    if (!isBinSensorData(j)) {
+                                        throw new Error("Unexpected response format: ".concat(j));
+                                    }
+                                    return j.results;
+                                });
+                            });
+                        }))];
+                case 3:
+                    results = _a.sent();
+                    return [2, __spreadArray([first], results, true).flat()];
                 case 4:
                     e_1 = _a.sent();
                     if (e_1 instanceof Error) {
-                        console.log("Request for ".concat(url, " failed:"), e_1.message);
+                        console.log("Request for getBinSensorData failed:", e_1.message);
                     }
-                    console.log("Request for ".concat(url, " failed with weird error:"), e_1);
+                    console.log("Request for getBinSensorData failed with weird error:", e_1);
                     return [3, 5];
                 case 5: return [2];
             }
@@ -122,36 +145,32 @@ function getBinSensorData(id_1, after_date_1) {
 }
 function getBinSensorIds() {
     return __awaiter(this, void 0, void 0, function () {
-        var url, response, json, e_2;
+        var response, json, e_2;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    url = melbDataUrl(binSensorDatasetId);
-                    url.search = new URLSearchParams({
-                        group_by: "dev_id",
-                        limit: "100",
-                    }).toString();
-                    return [4, fetch(url)];
+                    _a.trys.push([0, 3, , 4]);
+                    return [4, apiCall(binSensorDatasetId, {
+                            groupBy: "dev_id",
+                            limit: 100,
+                        })];
                 case 1:
                     response = _a.sent();
-                    _a.label = 2;
-                case 2:
-                    _a.trys.push([2, 4, , 5]);
                     return [4, response.json()];
-                case 3:
+                case 2:
                     json = _a.sent();
                     if (!isBinSensorDevIds(json)) {
-                        throw new Error("Unexpected response format: ".concat(json));
+                        throw new Error("Unexpected response format: ".concat(JSON.stringify(json)));
                     }
                     return [2, json.results.map(function (o) { return o.dev_id; })];
-                case 4:
+                case 3:
                     e_2 = _a.sent();
                     if (e_2 instanceof Error) {
-                        console.log("Request for ".concat(url, " failed:"), e_2.message);
+                        console.log("Request for getBinSensorIds failed:", e_2.message);
                     }
-                    console.log("Request for ".concat(url, " failed with weird error:"), e_2);
-                    return [3, 5];
-                case 5: return [2];
+                    console.log("Request for getBinSensorIds failed with weird error:", e_2);
+                    return [3, 4];
+                case 4: return [2];
             }
         });
     });
@@ -164,7 +183,7 @@ function getBinSensorDataForDate(date) {
                 case 0: return [4, getBinSensorIds()];
                 case 1:
                     sensorIds = _a.sent();
-                    return [4, Promise.all(sensorIds.map(function (id) { return getBinSensorData(id, date); }))];
+                    return [4, Promise.all(sensorIds.map(function (id) { return getBinSensorData([id], date); }))];
                 case 2:
                     binData = _a.sent();
                     return [2, sensorIds
@@ -173,6 +192,30 @@ function getBinSensorDataForDate(date) {
             }
         });
     });
+}
+function getBinSensorDataBetweenDates(after_date, before_date) {
+    return __awaiter(this, void 0, void 0, function () {
+        var sensorIds, binData;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4, getBinSensorIds()];
+                case 1:
+                    sensorIds = _a.sent();
+                    return [4, Promise.all(sensorIds.map(function (id) { return getBinSensorData([id], after_date, before_date); }))];
+                case 2:
+                    binData = _a.sent();
+                    return [2, sensorIds
+                            .map(function (id, i) { return ({ id: id, data: binData[i] }); })
+                            .filter(function (d) { return d.data.length > 0; })];
+            }
+        });
+    });
+}
+function apiCall(datasetId, options) {
+    var url = melbDataUrl(datasetId);
+    var where = options.where, orderBy = options.orderBy, groupBy = options.groupBy, offset = options.offset, limit = options.limit;
+    url.search = new URLSearchParams(__assign(__assign(__assign(__assign(__assign({}, (where ? { where: where } : {})), (orderBy ? { order_by: orderBy } : {})), (groupBy ? { group_by: groupBy } : {})), (limit ? { limit: limit.toString() } : {})), (offset ? { offset: offset.toString() } : {}))).toString();
+    return fetch(url);
 }
 var PARCHMENT = "#F3E9D2";
 var PEACH = "#F7E3AF";
@@ -187,7 +230,7 @@ var SPACE_CADET = "#2B2D42";
 var LAVENDER_GREY = "#a3a6c9";
 var BACKGROUND = SPACE_CADET;
 var p5BinSketch = new p5(function sketch(sk) {
-    var refreshInterval = 1000 * 60 * 60;
+    var refreshInterval = 1000 * 60 * 10;
     var maxPlanets = 4;
     var minSystemSize = 3;
     var maxSystemSize = sk.windowHeight * 0.1;
@@ -195,9 +238,13 @@ var p5BinSketch = new p5(function sketch(sk) {
     var binDataKey = "sketch-bin-data";
     var centrePointKey = "sketch-bin-centre-point";
     var textKey = "sketch-bin-text";
-    var date = new Date();
-    date.setDate(date.getDate() - 5);
+    var afterDate = new Date();
+    afterDate.setFullYear(afterDate.getFullYear() - 1);
+    afterDate.setDate(afterDate.getDate() - 14);
+    var beforeDate = new Date();
+    beforeDate.setFullYear(beforeDate.getFullYear() - 1);
     var dataTimer;
+    var doneIds = [];
     var entry = 0;
     var entryCounter = 0;
     var startZoom = 1000000;
@@ -303,19 +350,12 @@ var p5BinSketch = new p5(function sketch(sk) {
                     binData = bin.data[entry];
                 }
                 else {
+                    if (!doneIds.includes(bin.id)) {
+                        doneIds.push(bin.id);
+                        console.log(bin.id, "done at", entry);
+                    }
                     binData = bin.data[bin.data.length - 1];
                     done_1 = done_1 && true;
-                }
-                if (done_1) {
-                    reverse = !reverse;
-                    entry += 1 * (reverse ? -1 : 1);
-                }
-                else if (entryCounter > 1000) {
-                    entry += 1 * (reverse ? -1 : 1);
-                    entryCounter = 0;
-                }
-                else {
-                    entryCounter += sk.deltaTime;
                 }
                 if (binData.lat_long &&
                     "lon" in binData.lat_long &&
@@ -327,18 +367,24 @@ var p5BinSketch = new p5(function sketch(sk) {
                     systemSize = systemSize > minSystemSize ? systemSize : minSystemSize;
                     systemSize = systemSize < maxSystemSize ? systemSize : maxSystemSize;
                     var fill_level = binData.filllevel
-                        ? sk.constrain(binData.filllevel, 0, 100)
+                        ? sk.constrain(binData.filllevel, 1, 100)
                         : 1;
-                    var planets = sk.ceil((fill_level / 100) * maxPlanets);
+                    var planets = sk.round((fill_level / 100) * maxPlanets);
                     var temp = sk.norm(binData.temperature || 16, 0, 30);
                     drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
-                    var tc_1 = sk.color(PISTACHIO);
-                    tc_1.setAlpha(160);
-                    sk.fill(tc_1);
-                    sk.textFont("Courier New");
-                    sk.text(binData.time, xx + systemSize + 50, yy + systemSize + 50);
                 }
             });
+            if (done_1) {
+                console.log("done at ", entry);
+                entry = 0;
+            }
+            else if (entryCounter > 100) {
+                entry += 1;
+                entryCounter = 0;
+            }
+            else {
+                entryCounter += sk.deltaTime;
+            }
         }
         sk.pop();
     };
@@ -570,12 +616,10 @@ var p5BinSketch = new p5(function sketch(sk) {
         var lastRefresh = sk.getItem(refreshTimestampKey);
         var data = sk.getItem(binDataKey);
         var centrePoint = sk.getItem(centrePointKey);
-        var text = sk.getItem(textKey);
         if (data === null ||
             centrePoint === null ||
-            text === null ||
             lastRefresh < Date.now() - refreshInterval) {
-            getBinSensorDataForDate(date)
+            getBinSensorDataForDate(afterDate)
                 .then(function (data) {
                 if (data) {
                     var filteredData = data.filter(function (d) { return d.data[0].lat_long !== null; });
@@ -588,13 +632,9 @@ var p5BinSketch = new p5(function sketch(sk) {
                         lat: lat / filteredData.length,
                         lon: lon / filteredData.length,
                     };
-                    var text_1 = data
-                        .flatMap(function (b) { return b.data; })
-                        .map(function (d) { return JSON.stringify(d); });
                     sk.storeItem(centrePointKey, centre);
                     sk.storeItem(binDataKey, filteredData);
                     sk.storeItem(refreshTimestampKey, Date.now());
-                    sk.storeItem(textKey, text_1);
                 }
             })
                 .catch(function (e) { return console.error("Could not refresh data: ", e); });
