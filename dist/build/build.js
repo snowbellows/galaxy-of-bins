@@ -351,10 +351,8 @@ var p5BinSketch = new p5(function sketch(sk) {
         if (event.movementX && event.movementY) {
             var newCentreX = centreX + event.movementX;
             var newCentreY = centreY + event.movementY;
-            if (newCentreX > 0 && newCentreX < sk.windowWidth)
-                centreX = newCentreX;
-            if (newCentreY > 0 && newCentreY < sk.windowHeight)
-                centreY = newCentreY;
+            centreX = newCentreX;
+            centreY = newCentreY;
         }
         return false;
     };
