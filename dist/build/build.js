@@ -276,7 +276,7 @@ var p5BinSketch = new p5(function sketch(sk) {
             sk.pop();
         }
         var c = sk.color(BACKGROUND);
-        c.setAlpha(245);
+        c.setAlpha(220);
         sk.fill(c);
         sk.rect(sk.windowWidth / 2, sk.windowHeight / 2, sk.windowWidth, sk.windowHeight);
         var data = sk.getItem(binDataKey);
@@ -332,6 +332,11 @@ var p5BinSketch = new p5(function sketch(sk) {
                     var planets = sk.ceil((fill_level / 100) * maxPlanets);
                     var temp = sk.norm(binData.temperature || 16, 0, 30);
                     drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
+                    var tc_1 = sk.color(PISTACHIO);
+                    tc_1.setAlpha(160);
+                    sk.fill(tc_1);
+                    sk.textFont("Courier New");
+                    sk.text(binData.time, xx + systemSize + 50, yy + systemSize + 50);
                 }
             });
         }

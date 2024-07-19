@@ -148,7 +148,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     }
 
     let c = sk.color(BACKGROUND);
-    c.setAlpha(245);
+    c.setAlpha(220);
     sk.fill(c);
 
     sk.rect(
@@ -209,7 +209,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.text(
       "Map image from OpenStreetMap",
       sk.windowWidth - (300 - textHeight),
-      sk.windowHeight - textHeight,
+      sk.windowHeight - textHeight
     );
 
     const centrePoint = sk.getItem(centrePointKey) as null | {
@@ -283,6 +283,12 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
           const temp = sk.norm(binData.temperature || 16, 0, 30);
 
           drawStarSystem(xx, yy, systemSize, i, planets || 1, temp);
+
+          let tc = sk.color(PISTACHIO);
+          tc.setAlpha(160);
+          sk.fill(tc);
+          sk.textFont("Courier New");
+          sk.text(binData.time, xx + systemSize + 50, yy + systemSize + 50);
         }
       });
     }
@@ -310,7 +316,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       // if (newCentreY > 0 && newCentreY < sk.windowHeight) centreY = newCentreY;
       centreX = newCentreX;
       centreY = newCentreY;
-
     }
     return false;
   };
