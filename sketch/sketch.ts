@@ -210,19 +210,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     //   sk.pop();
     // }
 
-    let tc = sk.color(TEXT);
-    tc.setAlpha(160);
-    sk.fill(tc);
-    // sk.stroke(AMARANTH_PINK)
-    sk.textFont("Courier New");
-    sk.textSize(textHeight);
-
-    // need to add link, maybe can just use html?
-    sk.text(
-      "Map image from OpenStreetMap",
-      sk.windowWidth - (300 - textHeight),
-      sk.windowHeight - textHeight
-    );
 
     const centrePoint = sk.getItem(centrePointKey) as null | {
       lat: number;
