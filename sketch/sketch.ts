@@ -141,20 +141,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   };
 
   sk.draw = () => {
-    if (bgImage) {
-      sk.push();
-      sk.translate(centreX, centreY);
-      const imageZoomPC = 250000;
-      sk.image(
-        bgImage,
-        0,
-        0,
-        (bgImage.width * zoom) / imageZoomPC,
-        (bgImage.height * zoom) / imageZoomPC
-      );
-      sk.pop();
-    }
-
     let c = sk.color(BACKGROUND);
     c.setAlpha(220);
     sk.fill(c);
