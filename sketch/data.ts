@@ -7,7 +7,7 @@ function melbDataUrl(datasetId: string): URL {
   return new URL(`${melbOpenDataBaseUrl}${datasetId}/records`);
 }
 
-interface BinSensorDataEntry {
+export interface BinSensorDataEntry {
   dev_id: string;
   time: string;
   temperature: number;
@@ -21,7 +21,7 @@ interface BinSensorDataEntry {
   sensor_name: string;
   fill_level: number;
 }
-interface BinSensorDataReturnType {
+export interface BinSensorDataReturnType {
   total_count: number;
   results: BinSensorDataEntry[];
 }
@@ -121,9 +121,10 @@ async function getBinSensorData(
   } catch (e) {
     if (e instanceof Error) {
       console.log(`Request for getBinSensorData failed:`, e.message);
+    } else {
+      console.log(`Request for getBinSensorData failed with weird error:`, e);
     }
-
-    console.log(`Request for getBinSensorData failed with weird error:`, e);
+    throw e;
   }
 }
 
@@ -147,13 +148,14 @@ async function getBinSensorIds(): Promise<string[]> {
   } catch (e) {
     if (e instanceof Error) {
       console.log(`Request for getBinSensorIds failed:`, e.message);
+    } else {
+      console.log(`Request for getBinSensorIds failed with weird error:`, e);
     }
-
-    console.log(`Request for getBinSensorIds failed with weird error:`, e);
+    throw e;
   }
 }
 
-async function getBinSensorDataForDate(date: Date): Promise<
+export async function getBinSensorDataForDate(date: Date): Promise<
   {
     id: string;
     data: BinSensorDataEntry[];
@@ -170,7 +172,7 @@ async function getBinSensorDataForDate(date: Date): Promise<
     .filter((d) => d.data.length > 0);
 }
 
-async function getBinSensorDataBetweenDates(
+export async function getBinSensorDataBetweenDates(
   after_date: Date,
   before_date: Date
 ): Promise<
