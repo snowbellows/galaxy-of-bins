@@ -217,18 +217,29 @@ function apiCall(datasetId, options) {
     url.search = new URLSearchParams(__assign(__assign(__assign(__assign(__assign({}, (where ? { where: where } : {})), (orderBy ? { order_by: orderBy } : {})), (groupBy ? { group_by: groupBy } : {})), (limit ? { limit: limit.toString() } : {})), (offset ? { offset: offset.toString() } : {}))).toString();
     return fetch(url);
 }
-var PARCHMENT = "#F3E9D2";
-var PEACH = "#F7E3AF";
-var CARROT_ORANGE = "#F18F01";
-var CHESTNUT = "#C73E1D";
-var AUTUMN_BROWN = "#541a0b";
-var AMARANTH_PINK = "#E39EC1";
-var FRENCH_MAUVE = "#C47AC0";
-var CAROLINA_BLUE = "#84BCDA";
-var PISTACHIO = "#B4DC7F";
-var SPACE_CADET = "#2B2D42";
-var LAVENDER_GREY = "#a3a6c9";
-var BACKGROUND = SPACE_CADET;
+var MATRIX = "#A4545F";
+var KOBI = "#E7A3B2";
+var POLO_BLUE = "#92A3CE";
+var ANTIQUE_BRASS = "#C39070";
+var BRANDY = "#DAC688";
+var ECRU_WHITE = "#F4F6E9";
+var THUNDER = "#1F1B1D";
+var TEXT = ECRU_WHITE;
+var STAR_HOT = POLO_BLUE;
+var STAR_WARM = ECRU_WHITE;
+var STAR_COOL = BRANDY;
+var STAR_COLD = MATRIX;
+var APPLE_FLESH = ECRU_WHITE;
+var APPLE_SKIN = MATRIX;
+var APPLE_STALK = ANTIQUE_BRASS;
+var BOTTLE_PLASTIC = POLO_BLUE;
+var BOTTLE_CAP = ECRU_WHITE;
+var BOTTLE_LABEL_BG = KOBI;
+var CHIP_PACKET = KOBI;
+var CHIP_FOIL = ECRU_WHITE;
+var CHIP_LABEL = BRANDY;
+var SYSTEM_RING = KOBI;
+var BACKGROUND = THUNDER;
 var p5BinSketch = new p5(function sketch(sk) {
     var refreshInterval = 1000 * 60 * 10;
     var maxPlanets = 4;
@@ -315,19 +326,12 @@ var p5BinSketch = new p5(function sketch(sk) {
         }
     };
     sk.draw = function () {
-        if (bgImage) {
-            sk.push();
-            sk.translate(centreX, centreY);
-            var imageZoomPC = 250000;
-            sk.image(bgImage, 0, 0, (bgImage.width * zoom) / imageZoomPC, (bgImage.height * zoom) / imageZoomPC);
-            sk.pop();
-        }
         var c = sk.color(BACKGROUND);
         c.setAlpha(220);
         sk.fill(c);
         sk.rect(sk.windowWidth / 2, sk.windowHeight / 2, sk.windowWidth, sk.windowHeight);
         var data = sk.getItem(binDataKey);
-        var tc = sk.color(PISTACHIO);
+        var tc = sk.color(TEXT);
         tc.setAlpha(160);
         sk.fill(tc);
         sk.textFont("Courier New");
@@ -443,7 +447,7 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.push();
         sk.rotate(r);
         sk.noStroke();
-        sk.fill(CAROLINA_BLUE);
+        sk.fill(BOTTLE_PLASTIC);
         var rX = 0;
         var rW = w;
         var cX = 0;
@@ -460,14 +464,14 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.ellipse(eX, eY, eW, eH);
         var capW = w / 3;
         var capH = w / 3;
-        sk.fill(PARCHMENT);
+        sk.fill(BOTTLE_CAP);
         sk.rect(0, cY - cD / 2, capW, capH, w / 10);
-        sk.fill(FRENCH_MAUVE);
+        sk.fill(BOTTLE_LABEL_BG);
         var lH = rH / 2;
         var lrX = rY - lH / 3;
         sk.rect(0, lrX, rW, lH);
         sk.ellipse(0, lrX + lH / 2, eW, eH);
-        sk.fill(CAROLINA_BLUE);
+        sk.fill(BOTTLE_PLASTIC);
         sk.ellipse(0, lrX - lH / 2, eW, eH);
         sk.pop();
     }
@@ -481,18 +485,18 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.noStroke();
         var seH = w / 3;
         var rH = h - seH / 2;
-        sk.fill(PISTACHIO);
+        sk.fill(APPLE_SKIN);
         sk.rect(0, rH / 2, w, seH, s / 10);
-        sk.fill(PEACH);
+        sk.fill(APPLE_FLESH);
         sk.rect(0, 0, w, rH);
         var c = sk.color(BACKGROUND);
         c.setAlpha(160);
         sk.fill(c);
         sk.ellipse(-(w / 2), 0, w / 2, h);
         sk.ellipse(w / 2, 0, w / 2, h);
-        sk.fill(PISTACHIO);
+        sk.fill(APPLE_SKIN);
         sk.ellipse(0, -rH / 2, w, seH);
-        sk.fill(AUTUMN_BROWN);
+        sk.fill(APPLE_STALK);
         var sH = s / 5;
         sk.push();
         sk.translate(0, -rH / 2 - sH / 2);
@@ -513,15 +517,15 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.translate(x, y);
         sk.rotate(r);
         sk.noStroke();
-        sk.fill(AMARANTH_PINK);
+        sk.fill(CHIP_PACKET);
         var feH = s / 5;
         var rH = h - feH / 2;
         sk.rect(0, feH / 2, w, rH);
-        sk.fill(LAVENDER_GREY);
+        sk.fill(CHIP_FOIL);
         sk.rect(0, -(rH / 2) + feH / 2, w, feH, feH / 2);
         var bfrH = feH / 3;
         sk.rect(0, rH / 2 + feH / 2 - bfrH / 2, w, bfrH);
-        sk.fill(FRENCH_MAUVE);
+        sk.fill(CHIP_LABEL);
         sk.rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
         sk.pop();
     }
@@ -531,16 +535,16 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.noStroke();
         var c;
         if (t > 0.75) {
-            c = sk.color(CAROLINA_BLUE);
+            c = sk.color(STAR_HOT);
         }
         else if (t > 0.5) {
-            c = sk.color(PARCHMENT);
+            c = sk.color(STAR_WARM);
         }
         else if (t > 0.25) {
-            c = sk.color(CARROT_ORANGE);
+            c = sk.color(STAR_COOL);
         }
         else {
-            c = sk.color(CHESTNUT);
+            c = sk.color(STAR_COLD);
         }
         sk.fill(c);
         sk.circle(0, 0, d);
@@ -569,7 +573,7 @@ var p5BinSketch = new p5(function sketch(sk) {
         sk.translate(x, y);
         sk.push();
         sk.noFill();
-        var c = sk.color(FRENCH_MAUVE);
+        var c = sk.color(SYSTEM_RING);
         c.setAlpha(100);
         sk.strokeWeight(2);
         sk.stroke(c);
@@ -584,7 +588,6 @@ var p5BinSketch = new p5(function sketch(sk) {
             sk.rotate(angle);
             sk.translate(radius, 0);
             var c = sk.color(BACKGROUND);
-            c.setAlpha(60);
             sk.fill(c);
             sk.circle(0, 0, blankSpaceSize);
             sk.pop();

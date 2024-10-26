@@ -1,17 +1,35 @@
 // Colours
 
-const PARCHMENT = "#F3E9D2";
-const PEACH = "#F7E3AF";
-const CARROT_ORANGE = "#F18F01";
-const CHESTNUT = "#C73E1D";
-const AUTUMN_BROWN = "#541a0b";
-const AMARANTH_PINK = "#E39EC1";
-const FRENCH_MAUVE = "#C47AC0";
-const CAROLINA_BLUE = "#84BCDA";
-const PISTACHIO = "#B4DC7F";
-const SPACE_CADET = "#2B2D42";
-const LAVENDER_GREY = "#a3a6c9";
-const BACKGROUND = SPACE_CADET;
+const MATRIX = "#A4545F";
+const KOBI = "#E7A3B2";
+const POLO_BLUE = "#92A3CE";
+const ANTIQUE_BRASS = "#C39070";
+const BRANDY = "#DAC688";
+const ECRU_WHITE = "#F4F6E9";
+const THUNDER = "#1F1B1D";
+
+const TEXT = ECRU_WHITE;
+
+const STAR_HOT = POLO_BLUE ;
+const STAR_WARM = ECRU_WHITE;
+const STAR_COOL = BRANDY ;
+const STAR_COLD = MATRIX ;
+
+const APPLE_FLESH = ECRU_WHITE ;
+const APPLE_SKIN = MATRIX;
+const APPLE_STALK = ANTIQUE_BRASS ;
+
+const BOTTLE_PLASTIC = POLO_BLUE;
+const BOTTLE_CAP = ECRU_WHITE;
+const BOTTLE_LABEL_BG = KOBI;
+
+const CHIP_PACKET = KOBI;
+const CHIP_FOIL = ECRU_WHITE;
+const CHIP_LABEL = BRANDY;
+
+const SYSTEM_RING = KOBI;
+
+const BACKGROUND = THUNDER;
 
 let p5BinSketch = new p5(function sketch(sk: p5) {
   const refreshInterval = 1000 * 60 * 10; // 10m
@@ -192,7 +210,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     //   sk.pop();
     // }
 
-    let tc = sk.color(PISTACHIO);
+    let tc = sk.color(TEXT);
     tc.setAlpha(160);
     sk.fill(tc);
     // sk.stroke(AMARANTH_PINK)
@@ -396,7 +414,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.noStroke();
 
     // plastic body
-    sk.fill(CAROLINA_BLUE);
+    sk.fill(BOTTLE_PLASTIC);
     const rX = 0;
     const rW = w;
 
@@ -421,17 +439,17 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // cap
     const capW = w / 3;
     const capH = w / 3;
-    sk.fill(PARCHMENT);
+    sk.fill(BOTTLE_CAP);
     sk.rect(0, cY - cD / 2, capW, capH, w / 10);
 
     // label
-    sk.fill(FRENCH_MAUVE);
+    sk.fill(BOTTLE_LABEL_BG);
     const lH = rH / 2;
     const lrX = rY - lH / 3;
     sk.rect(0, lrX, rW, lH);
 
     sk.ellipse(0, lrX + lH / 2, eW, eH);
-    sk.fill(CAROLINA_BLUE);
+    sk.fill(BOTTLE_PLASTIC);
     sk.ellipse(0, lrX - lH / 2, eW, eH);
 
     sk.pop();
@@ -459,11 +477,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
     // bottom skin
 
-    sk.fill(PISTACHIO);
+    sk.fill(APPLE_SKIN);
     sk.rect(0, rH / 2, w, seH, s / 10);
 
     // apple flesh
-    sk.fill(PEACH);
+    sk.fill(APPLE_FLESH);
     sk.rect(0, 0, w, rH);
     let c = sk.color(BACKGROUND);
     c.setAlpha(160);
@@ -472,11 +490,11 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.ellipse(w / 2, 0, w / 2, h);
 
     // top skin
-    sk.fill(PISTACHIO);
+    sk.fill(APPLE_SKIN);
     sk.ellipse(0, -rH / 2, w, seH);
 
     // stalk
-    sk.fill(AUTUMN_BROWN);
+    sk.fill(APPLE_STALK);
     const sH = s / 5;
     sk.push();
     sk.translate(0, -rH / 2 - sH / 2);
@@ -510,7 +528,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     sk.noStroke();
 
     // packet
-    sk.fill(AMARANTH_PINK);
+    sk.fill(CHIP_PACKET);
 
     const feH = s / 5;
 
@@ -523,7 +541,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // const gap = feH / 8
     // rect(0, - (rH /2 ) + feH / 2 + gap, w + gap * 2, feH, feH / 2)
 
-    sk.fill(LAVENDER_GREY);
+    sk.fill(CHIP_FOIL);
 
     sk.rect(0, -(rH / 2) + feH / 2, w, feH, feH / 2);
 
@@ -535,7 +553,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
     // label
 
-    sk.fill(FRENCH_MAUVE);
+    sk.fill(CHIP_LABEL);
 
     sk.rect(0, 0 + feH / 2, w / 2, w / 3, s / 10);
 
@@ -557,13 +575,13 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
 
     let c;
     if (t > 0.75) {
-      c = sk.color(CAROLINA_BLUE);
+      c = sk.color(STAR_HOT);
     } else if (t > 0.5) {
-      c = sk.color(PARCHMENT);
+      c = sk.color(STAR_WARM);
     } else if (t > 0.25) {
-      c = sk.color(CARROT_ORANGE);
+      c = sk.color(STAR_COOL);
     } else {
-      c = sk.color(CHESTNUT);
+      c = sk.color(STAR_COLD);
     }
 
     sk.fill(c);
@@ -617,7 +635,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
     // rings
     sk.push(); // 2
     sk.noFill();
-    let c = sk.color(FRENCH_MAUVE);
+    let c = sk.color(SYSTEM_RING);
     c.setAlpha(100);
     sk.strokeWeight(2);
     sk.stroke(c);
