@@ -1,15 +1,25 @@
 {
   "compilerOptions": {
-    "module": "AMD",
-    "noImplicitAny": true,
-    "outFile": "./dist/build/build.js",
-    "preserveConstEnums": true,
-    "removeComments": true,
-    "rootDir": "./sketch/",
-    "sourceMap": true,
-    "target": "es5",
-    "moduleResolution": "node",
-    "resolveJsonModule": true,
-    "esModuleInterop": true
-  }
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2020", "DOM", "DOM.Iterable", ],
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "allowUmdGlobalAccess": true
+  },
+  "include": ["sketch", "global.d.ts"]
 }

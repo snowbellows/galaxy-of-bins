@@ -1,20 +1,18 @@
 {
-  "name": "p5-playground",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "galaxy-of-bins",
+  "version": "0.1.0",
+"type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "run-p start-compile start-run",
-    "start-compile": "tsc --watch",
-    "start-run": "browser-sync start --server 'dist' -w"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "@types/p5": "^1.7.6",
-    "browser-sync": "^3.0.2",
-    "npm-run-all": "^4.1.5",
-    "typescript": "^5.5.2"
+    "typescript": "~5.6.2",
+    "vite": "^5.4.9"
   }
 }
