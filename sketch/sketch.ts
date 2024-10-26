@@ -511,7 +511,7 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
   }
 
   /**
-   * Draws an apple core to the canvas.
+   * Draws a chip packet to the canvas.
    *
    * @param x x-coordinate of the center of the apple core.
    * @param y y-coordinate of the center of the apple core.
