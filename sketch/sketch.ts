@@ -634,7 +634,6 @@ let p5BinSketch = new p5(function sketch(sk: p5) {
       sk.translate(radius, 0);
       // blank space
       let c = sk.color(BACKGROUND);
-      c.setAlpha(60);
       sk.fill(c);
       sk.circle(0, 0, blankSpaceSize);
       sk.pop(); // 3
