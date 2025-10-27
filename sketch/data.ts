@@ -20,12 +20,12 @@ export interface BinSensorDataEntry {
   fillLevel: number;
 }
 export interface BinSensorDataReturnType {
-  total_count: number;
+  totalCount: number;
   results: BinSensorDataEntry[];
 }
 
 function isBinSensorData(data: any): data is BinSensorDataReturnType {
-  if (data instanceof Object && 'total_count' in data && 'results' in data) {
+  if (data instanceof Object && 'totalCount' in data && 'results' in data) {
     if (data.results instanceof Array) {
       if (data.results.length > 0) {
         if ('devId' in data.results[0]) return true;
@@ -40,14 +40,14 @@ function isBinSensorData(data: any): data is BinSensorDataReturnType {
 
 interface BinSensorDevIdReturnType {
   results: {
-    dev_id: string;
+    devId: string;
   }[];
 }
 
 function isBinSensorDevIds(data: any): data is BinSensorDevIdReturnType {
   if ('results' in data) {
     if (data.results.length > 0) {
-      if ('dev_id' in data.results[0]) {
+      if ('devId' in data.results[0]) {
         return true;
       }
     } else {
@@ -91,7 +91,7 @@ async function getBinSensorData(
       throw new Error(`Unexpected response format: ${JSON.stringify(json)}`);
     }
 
-    const total = json.total_count;
+    const total = json.totalCount;
 
     let first = json.results;
 
@@ -134,7 +134,7 @@ async function getBinSensorIds(): Promise<string[]> {
 
     const response = await apiCall({
       groupBy: 'dev_id',
-      limit: 100,
+      limit: 5,
     });
 
     const json = await response.json();
@@ -142,7 +142,7 @@ async function getBinSensorIds(): Promise<string[]> {
       throw new Error(`Unexpected response format: ${JSON.stringify(json)}`);
     }
 
-    return json.results.map((o) => o.dev_id);
+    return json.results.map((o) => o.devId);
   } catch (e) {
     if (e instanceof Error) {
       console.log(`Request for getBinSensorIds failed:`, e.message);
