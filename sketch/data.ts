@@ -209,3 +209,25 @@ function apiCall(options: {
 
   return fetch(url);
 }
+
+export async function getBackupData(fileName: string): Promise<
+  {
+    id: string;
+    data: BinSensorDataEntry[];
+  }[]
+> {
+  const url = `/${fileName}.json`;
+
+  const req = await fetch(url);
+  const jsonData = await req.json();
+
+  if (
+    'id' in jsonData[0] &&
+    'data' in jsonData[0] &&
+    'devId' in jsonData[0].data[0]
+  ) {
+    return jsonData;
+  } else {
+    throw new Error(`Unexpected response format: ${JSON.stringify(jsonData)}`);
+  }
+}

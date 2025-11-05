@@ -17,7 +17,11 @@ import {
   STAR_COLD,
   SYSTEM_RING,
 } from './consts/colours';
-import { BinSensorDataEntry, getBinSensorDataBetweenDates } from './data';
+import {
+  BinSensorDataEntry,
+  getBackupData,
+  getBinSensorDataBetweenDates,
+} from './data';
 
 export const genP5BinSketch = () =>
   new p5(function sketch(sk: p5) {
@@ -730,27 +734,59 @@ export const genP5BinSketch = () =>
               const filteredData = data.filter(
                 (d) => d.data[0].latLong !== null
               );
-              const { lat, lon } = filteredData.reduce(
-                (acc, d) => {
-                  const dll = d.data[0].latLong;
-                  return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
-                },
-                { lat: 0, lon: 0 }
-              );
-
-              filteredData.forEach((d) => console.log(d.data[0].latLong));
-
-              const centre = {
-                lat: lat / filteredData.length,
-                lon: lon / filteredData.length,
-              };
-
+              const centre = calcCentre(filteredData);
               sk.storeItem(centrePointKey, centre);
               sk.storeItem(binDataKey, filteredData);
               sk.storeItem(refreshTimestampKey, Date.now());
+            } else {
+              throw new Error('data is undefined');
             }
           })
-          .catch((e) => console.error('Could not refresh data: ', e));
+          .catch((e) => {
+            console.error('Could not refresh data: ', e);
+            console.info('Trying backup data...');
+
+            getBackupData('data-2024-10-22')
+              .then((data) => {
+                if (data) {
+                  const filteredData = data.filter(
+                    (d) => d.data[0].latLong !== null
+                  );
+                  const centre = calcCentre(filteredData);
+                  sk.storeItem(centrePointKey, centre);
+                  sk.storeItem(binDataKey, filteredData);
+                  sk.storeItem(refreshTimestampKey, Date.now());
+                } else {
+                  throw new Error('data is undefined');
+                }
+              })
+              .catch((e) => {
+                console.error('Getting backup data failed: ', e);
+              });
+          });
       }
+    }
+
+    function calcCentre(
+      filteredData: {
+        id: string;
+        data: BinSensorDataEntry[];
+      }[]
+    ) {
+      const { lat, lon } = filteredData.reduce(
+        (acc, d) => {
+          const dll = d.data[0].latLong;
+          return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+        },
+        { lat: 0, lon: 0 }
+      );
+
+      filteredData.forEach((d) => console.log(d.data[0].latLong));
+
+      const centre = {
+        lat: lat / filteredData.length,
+        lon: lon / filteredData.length,
+      };
+      return centre;
     }
   });
