@@ -17,7 +17,7 @@ import {
   STAR_COLD,
   SYSTEM_RING,
 } from './consts/colours';
-import { BinSensorDataEntry, getBinSensorDataForDate } from './data';
+import { BinSensorDataEntry, getBinSensorDataBetweenDates } from './data';
 
 export const genP5BinSketch = () =>
   new p5(function sketch(sk: p5) {
@@ -78,7 +78,7 @@ export const genP5BinSketch = () =>
 
     sk.preload = () => {
       refreshData();
-      bgImage = sk.loadImage('/argyle-square.svg');
+      // bgImage = sk.loadImage('/argyle-square.svg');
     };
 
     sk.setup = () => {
@@ -677,8 +677,8 @@ export const genP5BinSketch = () =>
         centrePoint === null ||
         (lastRefresh && lastRefresh < Date.now() - refreshInterval)
       ) {
-        // getBinSensorDataBetweenDates(afterDate, beforeDate)
-        getBinSensorDataForDate(afterDate)
+        getBinSensorDataBetweenDates(afterDate, beforeDate)
+          // getBinSensorDataForDate(afterDate)
           .then((data) => {
             if (data) {
               // data.forEach((d) => {

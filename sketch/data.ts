@@ -134,7 +134,7 @@ async function getBinSensorIds(): Promise<string[]> {
 
     const response = await apiCall({
       groupBy: 'dev_id',
-      limit: 5,
+      limit: 100,
     });
 
     const json = await response.json();
