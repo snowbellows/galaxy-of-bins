@@ -1,36 +1,34 @@
-const melbOpenDataBaseUrl =
-  "https://data.melbourne.vic.gov.au/api/explore/v2.1/catalog/datasets/";
+const baseUrl = import.meta.env.VITE_API_URL;
 
-const binSensorDatasetId = "netvox-r718x-bin-sensor";
+const binSensorDatasetId = 'netvox-r718x-bin-sensor';
 
-function melbDataUrl(datasetId: string): URL {
-  return new URL(`${melbOpenDataBaseUrl}${datasetId}/records`);
+function binDataUrl(): URL {
+  return new URL(`${baseUrl}/melbourne-open-data/bin-data`);
 }
 
 export interface BinSensorDataEntry {
-  dev_id: string;
+  devId: string;
   time: string;
   temperature: number;
   distance: number;
-  filllevel: number;
   battery: number;
-  lat_long: {
+  latLong: {
     lon: number;
     lat: number;
   };
-  sensor_name: string;
-  fill_level: number;
+  sensorName: string;
+  fillLevel: number;
 }
 export interface BinSensorDataReturnType {
-  total_count: number;
+  totalCount: number;
   results: BinSensorDataEntry[];
 }
 
 function isBinSensorData(data: any): data is BinSensorDataReturnType {
-  if (data instanceof Object && "total_count" in data && "results" in data) {
+  if (data instanceof Object && 'totalCount' in data && 'results' in data) {
     if (data.results instanceof Array) {
       if (data.results.length > 0) {
-        if ("dev_id" in data.results[0]) return true;
+        if ('devId' in data.results[0]) return true;
       } else {
         return true;
       }
@@ -42,14 +40,14 @@ function isBinSensorData(data: any): data is BinSensorDataReturnType {
 
 interface BinSensorDevIdReturnType {
   results: {
-    dev_id: string;
+    devId: string;
   }[];
 }
 
 function isBinSensorDevIds(data: any): data is BinSensorDevIdReturnType {
-  if ("results" in data) {
+  if ('results' in data) {
     if (data.results.length > 0) {
-      if ("dev_id" in data.results[0]) {
+      if ('devId' in data.results[0]) {
         return true;
       }
     } else {
@@ -65,7 +63,7 @@ async function getBinSensorData(
   before_date?: Date
 
   // results: BinSensorDataReturnType["results"] = []
-): Promise<BinSensorDataReturnType["results"]> {
+): Promise<BinSensorDataReturnType['results']> {
   try {
     // if (!response.ok) {
     //   throw new Error(`Response status: ${response.status}`);
@@ -73,17 +71,17 @@ async function getBinSensorData(
 
     const limit = 100;
 
-    const idString = ids && ids.map((id) => `"${id}"`).join(", ");
+    const idString = ids && ids.map((id) => `"${id}"`).join(', ');
 
-    const where = `${idString ? `dev_id in (${idString})` : ""}${
-      idString && (after_date || before_date) ? " and " : ""
-    }${after_date ? `time >= date'${after_date.toISOString()}'` : ""}${
-      after_date && before_date ? " and " : ""
-    }${before_date ? `time <= date'${before_date.toISOString()}'` : ""}`;
+    const where = `${idString ? `dev_id in (${idString})` : ''}${
+      idString && (after_date || before_date) ? ' and ' : ''
+    }${after_date ? `time >= date'${after_date.toISOString()}'` : ''}${
+      after_date && before_date ? ' and ' : ''
+    }${before_date ? `time <= date'${before_date.toISOString()}'` : ''}`;
 
-    const response = await apiCall(binSensorDatasetId, {
+    const response = await apiCall({
       where,
-      orderBy: "time",
+      orderBy: 'time',
       limit,
       offset: 0,
     });
@@ -93,7 +91,7 @@ async function getBinSensorData(
       throw new Error(`Unexpected response format: ${JSON.stringify(json)}`);
     }
 
-    const total = json.total_count;
+    const total = json.totalCount;
 
     let first = json.results;
 
@@ -101,9 +99,9 @@ async function getBinSensorData(
 
     const results = await Promise.all(
       Array.from(new Array(numApiCalls).keys()).map((i) => {
-        return apiCall(binSensorDatasetId, {
+        return apiCall({
           where,
-          orderBy: "time",
+          orderBy: 'time',
           limit,
           offset: limit * (i + 1),
         }).then((r) => {
@@ -134,8 +132,8 @@ async function getBinSensorIds(): Promise<string[]> {
     //   throw new Error(`Response status: ${response.status}`);
     // }
 
-    const response = await apiCall(binSensorDatasetId, {
-      groupBy: "dev_id",
+    const response = await apiCall({
+      groupBy: 'dev_id',
       limit: 100,
     });
 
@@ -144,7 +142,7 @@ async function getBinSensorIds(): Promise<string[]> {
       throw new Error(`Unexpected response format: ${JSON.stringify(json)}`);
     }
 
-    return json.results.map((o) => o.dev_id);
+    return json.results.map((o) => o.devId);
   } catch (e) {
     if (e instanceof Error) {
       console.log(`Request for getBinSensorIds failed:`, e.message);
@@ -192,17 +190,14 @@ export async function getBinSensorDataBetweenDates(
     .filter((d) => d.data.length > 0);
 }
 
-function apiCall(
-  datasetId: string,
-  options: {
-    where?: string;
-    orderBy?: string;
-    groupBy?: string;
-    offset?: number;
-    limit?: number;
-  }
-): Promise<Response> {
-  const url = melbDataUrl(datasetId);
+function apiCall(options: {
+  where?: string;
+  orderBy?: string;
+  groupBy?: string;
+  offset?: number;
+  limit?: number;
+}): Promise<Response> {
+  const url = binDataUrl();
   const { where, orderBy, groupBy, offset, limit } = options;
   url.search = new URLSearchParams({
     ...(where ? { where } : {}),
@@ -213,4 +208,26 @@ function apiCall(
   }).toString();
 
   return fetch(url);
+}
+
+export async function getBackupData(fileName: string): Promise<
+  {
+    id: string;
+    data: BinSensorDataEntry[];
+  }[]
+> {
+  const url = `/${fileName}.json`;
+
+  const req = await fetch(url);
+  const jsonData = await req.json();
+
+  if (
+    'id' in jsonData[0] &&
+    'data' in jsonData[0] &&
+    'devId' in jsonData[0].data[0]
+  ) {
+    return jsonData;
+  } else {
+    throw new Error(`Unexpected response format: ${JSON.stringify(jsonData)}`);
+  }
 }

@@ -16,8 +16,12 @@ import {
   STAR_COOL,
   STAR_COLD,
   SYSTEM_RING,
-} from "./consts/colours";
-import { BinSensorDataEntry, getBinSensorDataForDate } from "./data";
+} from './consts/colours';
+import {
+  BinSensorDataEntry,
+  getBackupData,
+  getBinSensorDataBetweenDates,
+} from './data';
 
 export const genP5BinSketch = () =>
   new p5(function sketch(sk: p5) {
@@ -28,10 +32,10 @@ export const genP5BinSketch = () =>
     const minSystemSize = 3;
     const maxSystemSize = sk.windowHeight * 0.1;
 
-    const refreshTimestampKey = "sketch-data-refresh-timestamp";
-    const binDataKey = "sketch-bin-data";
-    const centrePointKey = "sketch-bin-centre-point";
-    const textKey = "sketch-bin-text";
+    const refreshTimestampKey = 'sketch-data-refresh-timestamp';
+    const binDataKey = 'sketch-bin-data';
+    const centrePointKey = 'sketch-bin-centre-point';
+    const textKey = 'sketch-bin-text';
 
     const afterDate = new Date();
 
@@ -78,11 +82,11 @@ export const genP5BinSketch = () =>
 
     sk.preload = () => {
       refreshData();
-      bgImage = sk.loadImage("/argyle-square.svg");
+      // bgImage = sk.loadImage('/argyle-square.svg');
     };
 
     sk.setup = () => {
-      console.log("🚀 - Setup initialized - P5 is running");
+      console.log('🚀 - Setup initialized - P5 is running');
 
       sk.createCanvas(sk.windowWidth, sk.windowHeight);
       sk.rectMode(sk.CENTER);
@@ -108,8 +112,8 @@ export const genP5BinSketch = () =>
           (acc, d) => {
             const min = acc[0];
             const max = acc[1];
-            const dLat = d.data[0].lat_long.lat;
-            const dLon = d.data[0].lat_long.lon;
+            const dLat = d.data[0].latLong.lat;
+            const dLon = d.data[0].latLong.lon;
             if (
               max.lat === 0 &&
               max.lon === 0 &&
@@ -225,7 +229,7 @@ export const genP5BinSketch = () =>
           } else {
             if (!doneIds.includes(bin.id)) {
               doneIds.push(bin.id);
-              console.log(bin.id, "done at", entry);
+              console.log(bin.id, 'done at', entry);
             }
             binData = bin.data[bin.data.length - 1];
             done = done && true;
@@ -234,13 +238,13 @@ export const genP5BinSketch = () =>
           // console.log("entry:", entry);
 
           if (
-            binData.lat_long &&
-            "lon" in binData.lat_long &&
-            "lat" in binData.lat_long
+            binData.latLong &&
+            'lon' in binData.latLong &&
+            'lat' in binData.latLong
           ) {
             const { lon: x, lat: y } = differenceLatLon(
               centrePoint,
-              binData.lat_long
+              binData.latLong
             );
 
             const xx = x * zoom;
@@ -253,8 +257,8 @@ export const genP5BinSketch = () =>
             systemSize =
               systemSize < maxSystemSize ? systemSize : maxSystemSize;
 
-            const fill_level = binData.filllevel
-              ? sk.constrain(binData.filllevel, 1, 100)
+            const fill_level = binData.fillLevel
+              ? sk.constrain(binData.fillLevel, 1, 100)
               : 1;
 
             const planets = sk.round((fill_level / 100) * maxPlanets);
@@ -299,7 +303,7 @@ export const genP5BinSketch = () =>
         if (done) {
           // reverse = !reverse;
           // entry += 1 * (reverse ? -1 : 1);
-          console.log("done at ", entry);
+          console.log('done at ', entry);
           entry = 0;
         } else if (entryCounter > 100) {
           // entry += 1 * (reverse ? -1 : 1);
@@ -677,8 +681,8 @@ export const genP5BinSketch = () =>
         centrePoint === null ||
         (lastRefresh && lastRefresh < Date.now() - refreshInterval)
       ) {
-        // getBinSensorDataBetweenDates(afterDate, beforeDate)
-        getBinSensorDataForDate(afterDate)
+        getBinSensorDataBetweenDates(afterDate, beforeDate)
+          // getBinSensorDataForDate(afterDate)
           .then((data) => {
             if (data) {
               // data.forEach((d) => {
@@ -728,29 +732,61 @@ export const genP5BinSketch = () =>
               // });
 
               const filteredData = data.filter(
-                (d) => d.data[0].lat_long !== null
+                (d) => d.data[0].latLong !== null
               );
-              const { lat, lon } = filteredData.reduce(
-                (acc, d) => {
-                  const dll = d.data[0].lat_long;
-                  return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
-                },
-                { lat: 0, lon: 0 }
-              );
-
-              filteredData.forEach((d) => console.log(d.data[0].lat_long));
-
-              const centre = {
-                lat: lat / filteredData.length,
-                lon: lon / filteredData.length,
-              };
-
+              const centre = calcCentre(filteredData);
               sk.storeItem(centrePointKey, centre);
               sk.storeItem(binDataKey, filteredData);
               sk.storeItem(refreshTimestampKey, Date.now());
+            } else {
+              throw new Error('data is undefined');
             }
           })
-          .catch((e) => console.error("Could not refresh data: ", e));
+          .catch((e) => {
+            console.error('Could not refresh data: ', e);
+            console.info('Trying backup data...');
+
+            getBackupData('data-2024-10-22')
+              .then((data) => {
+                if (data) {
+                  const filteredData = data.filter(
+                    (d) => d.data[0].latLong !== null
+                  );
+                  const centre = calcCentre(filteredData);
+                  sk.storeItem(centrePointKey, centre);
+                  sk.storeItem(binDataKey, filteredData);
+                  sk.storeItem(refreshTimestampKey, Date.now());
+                } else {
+                  throw new Error('data is undefined');
+                }
+              })
+              .catch((e) => {
+                console.error('Getting backup data failed: ', e);
+              });
+          });
       }
+    }
+
+    function calcCentre(
+      filteredData: {
+        id: string;
+        data: BinSensorDataEntry[];
+      }[]
+    ) {
+      const { lat, lon } = filteredData.reduce(
+        (acc, d) => {
+          const dll = d.data[0].latLong;
+          return { lat: acc.lat + dll.lat, lon: acc.lon + dll.lon };
+        },
+        { lat: 0, lon: 0 }
+      );
+
+      filteredData.forEach((d) => console.log(d.data[0].latLong));
+
+      const centre = {
+        lat: lat / filteredData.length,
+        lon: lon / filteredData.length,
+      };
+      return centre;
     }
   });
